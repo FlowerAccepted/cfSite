@@ -1,0 +1,21 @@
+{
+    "markdown": "# 欢迎来到我的网站\n\n这是一个简短的介绍。你可以在这里添加更多内容。",
+    "categories": [
+        {
+            "name": "站点规则",
+            "links": [
+                {"name": "关于本站", "url": "", "description": "敬请期待喵~"},
+                {"name": "用户手册", "url": "", "description": "敬请期待喵~"},
+                {"name": "社区规则", "url": "", "description": "敬请期待喵~"},
+                {"name": "图床规则", "url": "", "description": "敬请期待喵~"}
+            ]
+        },
+        {
+            "name": "关于 FA",
+            "links": [
+                {"name": "站长名片", "url": "https://fa-namecard.pages.dev/", "description": "这是个预告页面喵~"},
+                {"name": "个人主页", "url": "", "description": "敬请期待喵~"}
+            ]
+        }
+    ]
+}
