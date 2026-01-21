@@ -32,6 +32,14 @@ body {
     z-index: -1;
 }
 
+.glass-sidebar {
+    background: var(--glass-bg);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid var(--glass-border);
+    box-shadow: var(--shadow);
+}
+
 .glass-panel, .glass-btn {
     background: var(--glass-bg);
     backdrop-filter: blur(10px);
