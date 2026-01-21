@@ -1,46 +1,7 @@
-# Astro Starter Kit: Basics
+<center><image alt="" src="public/favicon.svg" width="320" height="320"></center>
 
-```sh
-npm create astro@latest -- --template basics
-```
+# 欢迎来到 FlowerAccepted 的网站！
 
-> 🧑‍🚀 **Seasoned astronaut?** Delete this file. Have fun!
+发现实用工具，阅读绝妙文章，探索新鲜知识。欢迎光临拙站！
 
-## 🚀 Project Structure
-
-Inside of your Astro project, you'll see the following folders and files:
-
-```text
-/
-├── public/
-│   └── favicon.svg
-├── src
-│   ├── assets
-│   │   └── astro.svg
-│   ├── components
-│   │   └── Welcome.astro
-│   ├── layouts
-│   │   └── Layout.astro
-│   └── pages
-│       └── index.astro
-└── package.json
-```
-
-To learn more about the folder structure of an Astro project, refer to [our guide on project structure](https://docs.astro.build/en/basics/project-structure/).
-
-## 🧞 Commands
-
-All commands are run from the root of the project, from a terminal:
-
-| Command                   | Action                                           |
-| :------------------------ | :----------------------------------------------- |
-| `npm install`             | Installs dependencies                            |
-| `npm run dev`             | Starts local dev server at `localhost:4321`      |
-| `npm run build`           | Build your production site to `./dist/`          |
-| `npm run preview`         | Preview your build locally, before deploying     |
-| `npm run astro ...`       | Run CLI commands like `astro add`, `astro check` |
-| `npm run astro -- --help` | Get help using the Astro CLI                     |
-
-## 👀 Want to learn more?
-
-Feel free to check [our documentation](https://docs.astro.build) or jump into our [Discord server](https://astro.build/chat).
+<p style="color:#FFC116">（本站目前仍在建设中，敬请期待更多内容喵~）</p>
