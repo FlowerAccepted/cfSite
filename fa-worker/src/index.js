@@ -8,14 +8,19 @@
  * Learn more at https://developers.cloudflare.com/workers/
  */
 
-import { handleRegister } from "./routes/auth";
+import { handleRegister, handleLogin } from "./routes/auth.js";
 
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
-    if (url.pathname === "/api/register" && request.method === "POST") {
+
+    if (request.method === "POST" && url.pathname === "/api/register") {
       return handleRegister(request, env);
     }
+    if (request.method === "POST" && url.pathname === "/api/login") {
+      return handleLogin(request, env);
+    }
+
     return new Response("Not Found", { status: 404 });
   }
 };
