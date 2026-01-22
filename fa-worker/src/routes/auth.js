@@ -94,3 +94,37 @@ export async function handleChangePassword(request, env) {
     return new Response("DB error: " + (e?.message ?? String(e)), { status: 500 });
   }
 }
+
+export async function handleUpdateProfile(request, env) {
+  let body;
+  try {
+    body = await request.json();
+  } catch {
+    return new Response("Invalid JSON", { status: 400 });
+  }
+
+  const { uid, nickname, avatar, bio, links } = body;
+  if (!uid) return new Response("Missing UID", { status: 400 });
+
+  // 先读取原来的 profile
+  const userRes = await env.DB.prepare(`SELECT profile FROM users WHERE uid = ?`)
+                               .bind(uid)
+                               .all();
+
+  if (!userRes.results.length) return new Response("User not found", { status: 404 });
+
+  let profile = JSON.parse(userRes.results[0].profile);
+
+  // 更新字段，如果没有提供就保留原值
+  profile.nickname = nickname ?? profile.nickname ?? "";
+  profile.avatar = avatar ?? profile.avatar ?? "";
+  profile.bio = bio ?? profile.bio ?? "";
+  profile.links = links ?? profile.links ?? [];
+
+  // 保存回数据库
+  await env.DB.prepare(`UPDATE users SET profile = json(?) WHERE uid = ?`)
+              .bind(JSON.stringify(profile), uid)
+              .run();
+
+  return new Response(JSON.stringify(profile), { status: 200 });
+}
