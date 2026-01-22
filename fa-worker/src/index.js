@@ -8,16 +8,14 @@
  * Learn more at https://developers.cloudflare.com/workers/
  */
 
+import { handleRegister } from "./routes/auth";
+
 export default {
   async fetch(request, env) {
-    const row = await env.fa_cf_site
-      .prepare("SELECT 1 AS ok")
-      .first();
-
-    return new Response(
-      JSON.stringify(row),
-      { headers: { "Content-Type": "application/json" } }
-    );
-  },
+    const url = new URL(request.url);
+    if (url.pathname === "/api/register" && request.method === "POST") {
+      return handleRegister(request, env);
+    }
+    return new Response("Not Found", { status: 404 });
+  }
 };
-

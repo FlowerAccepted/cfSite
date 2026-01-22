@@ -12,7 +12,7 @@
 	},
 	"d1_databases": [
 		{
-		"binding": "fa_cf_site",
+		"binding": "DB",
 		"database_name": "fa-cf-site",
 		"database_id": "915c2285-7e75-46b7-b1da-3998d2b8e983"
 		}

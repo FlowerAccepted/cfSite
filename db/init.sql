@@ -1,0 +1,7 @@
+CREATE TABLE IF NOT EXISTS users (
+  uid INTEGER PRIMARY KEY AUTOINCREMENT,
+  username TEXT NOT NULL UNIQUE,
+  password_hash TEXT NOT NULL,
+  create_time INTEGER NOT NULL,
+  profile JSON NOT NULL DEFAULT '{}'
+);
