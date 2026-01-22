@@ -8,19 +8,30 @@
  * Learn more at https://developers.cloudflare.com/workers/
  */
 
-import { handleRegister, handleLogin } from "./routes/auth.js";
+// index.js
+/**
+ * Cloudflare Worker 主入口（统一使用 import * as auth）
+ */
+
+import * as auth from "./routes/auth.js";
 
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
 
     if (request.method === "POST" && url.pathname === "/api/register") {
-      return handleRegister(request, env);
+      return auth.handleRegister(request, env);
     }
+
     if (request.method === "POST" && url.pathname === "/api/login") {
-      return handleLogin(request, env);
+      return auth.handleLogin(request, env);
+    }
+
+    if (request.method === "POST" && url.pathname === "/api/change-password") {
+      return auth.handleChangePassword(request, env);
     }
 
     return new Response("Not Found", { status: 404 });
   }
 };
+
