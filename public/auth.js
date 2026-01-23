@@ -1,6 +1,7 @@
 export function setupAuth(API_BASE) {
   async function apiFetch(path, options = {}) {
     return fetch(`${API_BASE}${path}`, {
+      credentials: "include",
       ...options,
       headers: {
         "Content-Type": "application/json",
@@ -10,9 +11,15 @@ export function setupAuth(API_BASE) {
   }
 
   window.register = async function () {
-    const username = document.getElementById("username").value;
+    const username = document.getElementById("username").value.trim();
     const password = document.getElementById("password").value;
+    const confirm = document.getElementById("confirm-password")?.value;
     const msg = document.getElementById("msg");
+
+    if (confirm !== undefined && password !== confirm) {
+      msg.textContent = "两次输入的密码不一致";
+      return;
+    }
 
     const res = await apiFetch("/api/register", {
       method: "POST",
@@ -24,7 +31,7 @@ export function setupAuth(API_BASE) {
   };
 
   window.login = async function () {
-    const username = document.getElementById("username").value;
+    const username = document.getElementById("username").value.trim();
     const password = document.getElementById("password").value;
     const msg = document.getElementById("msg");
 
@@ -34,6 +41,6 @@ export function setupAuth(API_BASE) {
       body: JSON.stringify({ username, password })
     });
 
-    msg.textContent = await res.text();
+    msg.textContent = res.ok ? "登录成功" : await res.text();
   };
 }
