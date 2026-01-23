@@ -9,10 +9,11 @@ const API_BASE = import.meta.env.PUBLIC_API_BASE;
   </section>
 
   <section class="glass-panel">
-    <p><input id="username" placeholder="用户名" /></p>
-    <p><input id="password" type="password" placeholder="密码" /></p>
+    <p><input id="username" class="glass-input" placeholder="用户名" /></p>
+    <p><input id="password" class="glass-input" type="password" placeholder="密码" /></p>
     <button class="glass-btn" id="login-btn">登录</button>
     <p id="msg"></p>
+    没有账号？<a class="basic-href" href="/register">点我注册！</a>
   </section>
 
   <script type="module" define:vars={{ API_BASE }}>

@@ -1,10 +1,27 @@
 ---
 import BaseLayout from "../layouts/BaseLayout.astro";
+import { marked, Renderer } from 'marked';
+import fs from 'fs';
+
+
+class CustomRenderer extends Renderer {
+    // @ts-ignore
+    link({ href, title, tokens }) {
+        // @ts-ignore
+        const text = tokens.map(t => t.text || '').join('');
+        return `<a href="${href}" class="basic-href">${text}</a>`;
+    }
+}
+
+const renderer = new CustomRenderer();
+const markdownContent = fs.readFileSync('src/markdown.md', 'utf8');
+// @ts-ignore
+const renderedMarkdown = marked(markdownContent, { renderer });
 ---
 
 <BaseLayout title="导航页 - FAc's Site">
     <section id="markdown-content" class="glass-panel">
-        <div id="markdown-render"></div>
+        <div id="markdown-render" set:html={renderedMarkdown}></div>
     </section>
 
     <section class="title-section glass-panel">

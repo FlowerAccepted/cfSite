@@ -4,6 +4,7 @@
     --glass-border: rgba(255, 255, 255, 0.1);
     --text-color: #333;
     --shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    --basic-href: #00E187D0;
 }
 
 .dark-theme {
@@ -80,6 +81,11 @@ a {
     padding: 10px 20px;
     cursor: pointer;
     color: var(--text-color);
+    transition: transform 0.1618s ease;
+}
+
+.glass-btn:hover {
+    transform: scale(1.0618);
 }
 
 .left-nav {
@@ -210,4 +216,33 @@ a {
     margin: 0;
     font-size: 14px;
     opacity: 0.8;
+}
+
+.glass-input {
+    padding: 3px;
+    border: 2px solid var(--glass-border);
+    border-radius: 3px;
+    background: var(--glass-bg);
+    color: var(--text-color);
+    box-shadow: var(--shadow);
+}
+
+input::-webkit-input-placeholder {
+    color: var(--text-color);
+}
+
+input::-moz-placeholder {
+    color: var(--text-color);
+}
+
+input::-moz-placeholder {
+    color: var(--text-color);
+}
+
+input:-ms-input-placeholder {
+    color: var(--text-color);
+}
+
+.basic-href {
+    color: var(--basic-href);
 }
