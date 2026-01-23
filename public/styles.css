@@ -45,7 +45,7 @@ a {
     box-shadow: var(--shadow);
 }
 
-.glass-panel, .glass-btn {
+.glass-panel {
     background: var(--glass-bg);
     backdrop-filter: blur(10px);
     -webkit-backdrop-filter: blur(10px);
@@ -53,6 +53,19 @@ a {
     border-radius: 10px;
     box-shadow: var(--shadow);
     padding: 20px;
+}
+
+.glass-btn {
+    background: var(--glass-bg);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid var(--glass-border);
+    border-radius: 10px;
+    box-shadow: var(--shadow);
+    padding: 5px 10px;
+    cursor: pointer;
+    color: var(--text-color);
+    transition: transform 0.1618s ease;
 }
 
 .top-nav {
@@ -77,12 +90,6 @@ a {
     gap: 10px;
 }
 
-.glass-btn {
-    padding: 10px 20px;
-    cursor: pointer;
-    color: var(--text-color);
-    transition: transform 0.1618s ease;
-}
 
 .glass-btn:hover {
     transform: scale(1.0618);
