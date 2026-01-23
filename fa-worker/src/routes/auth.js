@@ -7,6 +7,10 @@ export async function handleRegister(request, env) {
   const { username, password } = body;
   if (!username || !password) return new Response("Missing fields", { status: 400 });
 
+  const passwordError = crypto.chkPassword(password);
+  if (passwordError)
+    return new Response(passwordError, { status: 400 });
+
   const passwordHash = await crypto.hashPassword(password);
   const profile = { nickname: username, avatar: null, roles: ["user"] };
 
@@ -76,6 +80,10 @@ export async function handleChangePassword(request, env) {
   .first();
 
   if (!user) return new Response("Old password incorrect", { status: 401 });
+
+  const passwordError = crypto.chkPassword(newPassword);
+  if (passwordError)
+    return new Response(passwordError, { status: 464 });
 
   const newHash = await crypto.hashPassword(newPassword);
 
