@@ -1,27 +1,39 @@
-async function register() {
-  const username = document.getElementById("username").value;
-  const password = document.getElementById("password").value;
-  const msg = document.getElementById("msg");
+export function setupAuth(API_BASE) {
+  async function apiFetch(path, options = {}) {
+    return fetch(`${API_BASE}${path}`, {
+      ...options,
+      headers: {
+        "Content-Type": "application/json",
+        ...(options.headers || {})
+      }
+    });
+  }
 
-  const res = await fetch("/api/register", {
-    method: "POST",
+  window.register = async function () {
+    const username = document.getElementById("username").value;
+    const password = document.getElementById("password").value;
+    const msg = document.getElementById("msg");
+
+    const res = await apiFetch("/api/register", {
+      method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ username, password })
-  });
+      body: JSON.stringify({ username, password })
+    });
 
-  msg.textContent = await res.text();
-}
+    msg.textContent = await res.text();
+  };
 
-async function login() {
-  const username = document.getElementById("username").value;
-  const password = document.getElementById("password").value;
-  const msg = document.getElementById("msg");
+  window.login = async function () {
+    const username = document.getElementById("username").value;
+    const password = document.getElementById("password").value;
+    const msg = document.getElementById("msg");
 
-  const res = await fetch("/api/login", {
-    method: "POST",
+    const res = await apiFetch("/api/login", {
+      method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ username, password })
-  });
+      body: JSON.stringify({ username, password })
+    });
 
-  msg.textContent = await res.text();
+    msg.textContent = await res.text();
+  };
 }

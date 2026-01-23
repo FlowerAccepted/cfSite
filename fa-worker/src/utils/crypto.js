@@ -5,11 +5,13 @@ export async function hashPassword(password) {
 }
 
 export function signJWT(payload, secret) {
-  const header = btoa(JSON.stringify({ alg: "HS256", typ: "JWT" }));
-  const body = btoa(JSON.stringify(payload));
-  const signature = btoa(secret); // 简化版，仅测试用
-  return `${header}.${body}.${signature}`;
+  const text = JSON.stringify(payload) + "." + secret;
+  const bytes = new TextEncoder().encode(text);
+  let binary = "";
+  bytes.forEach(b => binary += String.fromCharCode(b));
+  return btoa(binary);
 }
+
 
 export function verifyJWT(token, secret) {
   const [header, body, sig] = token.split(".");

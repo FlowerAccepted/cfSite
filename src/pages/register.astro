@@ -1,17 +1,29 @@
 ---
 import BaseLayout from "../layouts/BaseLayout.astro";
+const API_BASE = import.meta.env.PUBLIC_API_BASE;
 ---
 
 <BaseLayout title="登录 - FAc's Site">
-    <section class="title-section glass-panel">
-        <h1>注册</h1>
-    </section>
-    <section class="glass-panel">
-        <p><input id="username" placeholder="用户名" />
-</p>
-        <p><input id="password" type="password" placeholder="密码" /></p>
-        <button class="glass-btn" onclick="register()">注册</button>
-        <p id="msg"></p>
-        <script src="/auth.js" is:inline></script>
-    </section>
+  <section class="title-section glass-panel">
+    <h1>注册</h1>
+  </section>
+
+  <section class="glass-panel">
+    <p><input id="username" placeholder="用户名" /></p>
+    <p><input id="password" type="password" placeholder="密码" /></p>
+    <button class="glass-btn" onclick="register()">注册</button>
+    <p id="msg"></p>
+  </section>
+
+<script type="module" define:vars={{ API_BASE }}>
+  import { setupAuth } from "../auth.js";
+
+  setupAuth(API_BASE);
+
+  document
+    .getElementById("login-btn")
+    .addEventListener("click", () => {
+      window.login();
+    });
+</script>
 </BaseLayout>
