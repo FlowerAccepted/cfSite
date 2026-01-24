@@ -17,7 +17,7 @@ export function initPasswordUI({
     box.innerHTML = `<p style="color:#999">这个密码不可行喵，${msg}</p>`;
   }
 
-  function renderStrength(score, items) {
+  function renderStrength(score, items, confirmError) {
     const map = [
       { text: "密码太蒻啦～", color: "#999" },
       { text: "密码有点蒻喵～", color: "#e74c3c" },
@@ -37,6 +37,11 @@ export function initPasswordUI({
           </li>
         `).join("")}
       </ul>
+      ${
+        confirmError
+          ? `<p style="color:#e74c3c">⚠ ${confirmError}</p>`
+          : ""
+      }
     `;
   }
 
@@ -63,7 +68,11 @@ export function initPasswordUI({
     ];
 
     const score = items.filter(i => i.ok).length;
-    renderStrength(score, items);
+    const confirmError =
+      confirm && confirm.value && confirm.value !== v
+        ? "确认密码不一致"
+        : null;
+    renderStrength(score, items, confirmError);
   }
 
   pwd.addEventListener("input", check);

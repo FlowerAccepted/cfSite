@@ -257,7 +257,6 @@ input:-ms-input-placeholder {
 .input-wrap {
   position: relative;
   margin-bottom: 12px;
-  width: 100%;
 }
 
 .input-wrap .glass-input {
@@ -292,11 +291,11 @@ input:-ms-input-placeholder {
 }
 .input-wrap {
   position: relative;
-  width: 100%;
+  width: 500px;
 }
 
 .glass-input {
-  width: 100%;
+  width: 500px;
   box-sizing: border-box;
   padding-right: 44px;
 }
@@ -329,4 +328,10 @@ input:-ms-input-placeholder {
 
 .eye-btn.visible .eye-open {
   display: block;
+}
+
+.align-center {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
 }

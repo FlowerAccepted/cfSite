@@ -9,16 +9,14 @@ const API_BASE = import.meta.env.PUBLIC_API_BASE;
     <h1>注册</h1>
   </section>
 
-  <section class="glass-panel">
-
-    <p>
+  <section class="glass-panel align-center">
       <input
         id="username"
         class="glass-input"
         placeholder="用户名"
         autocomplete="username"
       />
-    </p>
+    <br/>
 
     <form>
       <PasswordInput id="password" placeholder="密码" />
@@ -47,7 +45,7 @@ const API_BASE = import.meta.env.PUBLIC_API_BASE;
     initPasswordToggle();
     initPasswordUI({
       passwordId: "password",
-      confirmId: "confirm-password",
+      confirmId: "confirm",
       containerId: "password-strength",
     });
   </script>
