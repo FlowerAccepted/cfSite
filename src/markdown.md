@@ -1,4 +1,4 @@
-<center><img alt="" src="favicon.svg" width="320" height="320"></center>
+<center><img alt="" src="https://cdn.jsdmirror.com/gh/FlowerAccepted/gh-src-for-cfsite-dns@main/favicon.svg" width="320" height="320"></center>
 
 # 欢迎来到 FlowerAccepted 的网站！
 

@@ -140,3 +140,20 @@ export async function handleUpdateProfile(request, env) {
     headers: { "Content-Type": "application/json" }
   });
 }
+
+export async function handleLogout(request, env) {
+  const sessionId = getCookie(request, "session");
+
+  if (sessionId) {
+    await env.DB.prepare(`
+      DELETE FROM sessions WHERE id = ?
+    `).bind(sessionId).run();
+  }
+
+  return new Response(JSON.stringify({ ok: true }), {
+    headers: {
+      "Set-Cookie": "session=; HttpOnly; Path=/; Max-Age=0",
+      "Content-Type": "application/json"
+    }
+  });
+}

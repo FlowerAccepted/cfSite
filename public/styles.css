@@ -1,5 +1,5 @@
 :root {
-    --bg-image: url('background.png'); /* 替换为你的背景图片 */
+    --bg-image: url('https://cdn.jsdmirror.com/gh/FlowerAccepted/gh-src-for-cfsite-dns@main/background.png');
     --glass-bg: rgba(255, 255, 255, 0.2);
     --glass-border: rgba(255, 255, 255, 0.1);
     --text-color: #333;
