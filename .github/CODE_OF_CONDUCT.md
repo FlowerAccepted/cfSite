@@ -1,7 +1,3 @@
-下面是对你提供文本的**完整、忠实、正式的中文翻译**，适合直接放进仓库（如 `CODE_OF_CONDUCT.md`），语气与 Contributor Covenant 官方风格保持一致。
-
----
-
 # 贡献者公约 · 行为准则（Contributor Covenant Code of Conduct）
 
 ## 我们的承诺
