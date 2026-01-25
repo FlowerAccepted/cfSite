@@ -23,11 +23,10 @@ const API_BASE = import.meta.env.PUBLIC_API_BASE;
       <PasswordInput id="confirm" placeholder="确认密码" />
     </form>
 
-    <!-- 密码强度 -->
     <div id="password-strength"></div>
 
     <p>
-      <button class="glass-btn" onclick="register()">注册</button>
+      <button id="register-btn" class="glass-btn" disabled>注册</button>
     </p>
 
     <p id="msg"></p>
@@ -47,6 +46,51 @@ const API_BASE = import.meta.env.PUBLIC_API_BASE;
       passwordId: "password",
       confirmId: "confirm",
       containerId: "password-strength",
+    });
+    const usernameInput = document.getElementById("username");
+    const passwordInput = document.getElementById("password");
+    const confirmInput  = document.getElementById("confirm");
+    const registerBtn   = document.getElementById("register-btn");
+
+    function isUsernameValid() {
+      return usernameInput.value.trim().length >= 3;
+    }
+
+    function isPasswordValid() {
+      const v = passwordInput.value;
+      return (
+        v.length >= 8 &&
+        /[A-Za-z]/.test(v) &&
+        /[0-9]/.test(v) &&
+        /[!@#$%^&*._-]/.test(v)
+      );
+    }
+
+    function isConfirmValid() {
+      return (
+        confirmInput.value.length > 0 &&
+        confirmInput.value === passwordInput.value
+      );
+    }
+
+    function updateRegisterState() {
+      const valid =
+        isUsernameValid() &&
+        isPasswordValid() &&
+        isConfirmValid();
+
+      registerBtn.disabled = !valid;
+    }
+    [
+      usernameInput,
+      passwordInput,
+      confirmInput
+    ].forEach(el => {
+      el.addEventListener("input", updateRegisterState);
+    });
+    registerBtn.addEventListener("click", () => {
+      if (registerBtn.disabled) return;
+      register();
     });
   </script>
 </BaseLayout>
