@@ -3,7 +3,6 @@ import BaseLayout from "../layouts/BaseLayout.astro";
 import { marked, Renderer } from 'marked';
 import fs from 'fs';
 
-
 class CustomRenderer extends Renderer {
     // @ts-ignore
     link({ href, title, tokens }) {
