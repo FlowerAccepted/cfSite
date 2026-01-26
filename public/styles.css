@@ -14,19 +14,11 @@
     --shadow: 0 4px 6px rgba(255, 255, 255, 0.1);
 }
 
-html {
-  background-image: url('https://cdn.jsdmirror.com/gh/FlowerAccepted/gh-src-for-cfsite-dns@main/background.png');
-  background-size: cover;
-  background-position: center;
-  background-attachment: fixed;
-}
-
 body {
     margin: 0;
-    font-family: Arial, sans-serif;
+    font-family: "Ubuntu", "行楷-简", sans-serif, Arial;
     color: var(--text-color);
     overflow-x: hidden;
-    background: transparent;
 }
 
 .background {
