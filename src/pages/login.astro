@@ -1,5 +1,6 @@
 ---
 import BaseLayout from "../layouts/BaseLayout.astro";
+import PasswordInput from "@/components/PasswordInput.astro";
 const API_BASE = import.meta.env.PUBLIC_API_BASE;
 ---
 
@@ -10,7 +11,9 @@ const API_BASE = import.meta.env.PUBLIC_API_BASE;
 
   <section class="glass-panel align-center">
     <input id="username" class="glass-input" placeholder="用户名" /><br />
-    <input id="password" class="glass-input" type="password" placeholder="密码" /><br />
+    <form>
+    <PasswordInput id="password" class="glass-input" type="password" placeholder="密码" /><br />
+    </form>
     <button class="glass-btn" id="login-btn" disabled>登录</button>
     <p id="msg"></p>
     没有账号？<a class="basic-href" href="/register">点我注册！</a>
@@ -18,31 +21,26 @@ const API_BASE = import.meta.env.PUBLIC_API_BASE;
 
   <script type="module" define:vars={{ API_BASE }}>
     import { setupAuth } from "../auth.js";
+    import { initPasswordToggle } from "../password-ui.js";
 
     setupAuth(API_BASE);
+    initPasswordToggle();
 
-    document
-      .getElementById("login-btn")
-      .addEventListener("click", () => {
-        window.login();
-      });
-    const usernameInput = document.getElementById("username");
-    const passwordInput = document.getElementById("password");
-    const loginBtn = document.getElementById("login-btn");
+    const username = document.getElementById("username");
+    const password = document.getElementById("password");
+    const btn = document.getElementById("login-btn");
 
-    function updateLoginState() {
-      const valid =
-        usernameInput.value.trim().length > 0 &&
-        passwordInput.value.length > 0;
-
-      loginBtn.disabled = !valid;
+    function update() {
+      btn.disabled =
+        !username.value.trim() ||
+        !password.value;
     }
 
-    [usernameInput, passwordInput].forEach(el => {
-      el.addEventListener("input", updateLoginState);
-    });
-    loginBtn.addEventListener("click", () => {
-      if (loginBtn.disabled) return;
+    username.addEventListener("input", update);
+    password.addEventListener("input", update);
+
+    btn.addEventListener("click", () => {
+      if (btn.disabled) return;
       login();
     });
   </script>
