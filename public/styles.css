@@ -14,11 +14,19 @@
     --shadow: 0 4px 6px rgba(255, 255, 255, 0.1);
 }
 
+html {
+  background-image: url('https://cdn.jsdmirror.com/gh/FlowerAccepted/gh-src-for-cfsite-dns@main/background.png');
+  background-size: cover;
+  background-position: center;
+  background-attachment: fixed;
+}
+
 body {
     margin: 0;
     font-family: Arial, sans-serif;
     color: var(--text-color);
     overflow-x: hidden;
+    background: transparent;
 }
 
 .background {
@@ -43,6 +51,13 @@ a {
     -webkit-backdrop-filter: blur(10px);
     border: 1px solid var(--glass-border);
     box-shadow: var(--shadow);
+}
+.glass-sidebar::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: inherit;
+  z-index: -1;
 }
 
 .glass-panel {
@@ -92,7 +107,6 @@ a {
     display: flex;
     gap: 10px;
 }
-
 
 .glass-btn:hover {
     transform: scale(1.0618);
