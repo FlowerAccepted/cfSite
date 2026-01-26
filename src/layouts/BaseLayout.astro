@@ -30,14 +30,39 @@ import "../styles/global.css";
 			<a class="glass-btn" href="/register">注册</a>
 		</div>
 	</header>
-	<aside class="left-nav glass-sidebar">
-		<nav>
-			<ul>
-				<li><a href="/">首页</a></li>
-				<li><a href="/#tools">工具</a></li>
-				<li><a href="/#about">关于</a></li>
-			</ul>
-		</nav>
+	<aside
+	class="group left-nav fixed top-0 left-0 h-screen
+			w-14 hover:w-56
+			transition-all duration-200
+			overflow-hidden
+			z-30
+			glass-sidebar">
+
+	<nav class="mt-4">
+		<a href="/"
+		class="relative flex items-center
+				h-10">
+
+		<span class="flex items-center justify-center w-6">
+			<svg class="w-5 h-5 shrink-0"
+				viewBox="210.973 232.148 25.6926 26.618">
+				<path d="M214.894 241.005L214.894 255.457C214.894 256.838 216.013 257.957 217.394 257.957L230.206 257.957C231.587 257.957 232.706 256.838 232.706 255.457L232.706 241.005M211.782 243.8L222.128 234.465C223.079 233.608 224.523 233.607 225.475 234.463L235.857 243.8M218.368 257.957L218.368 247.202C218.368 246.86 218.646 246.582 218.988 246.582L224.748 246.582C225.091 246.582 225.368 246.86 225.368 247.202L225.368 257.957M227.04 235.886L227.04 233.577C227.04 233.235 227.318 232.957 227.66 232.957L230.603 232.957C230.946 232.957 231.223 233.235 231.223 233.577L231.223 239.581"
+					fill="none"
+					stroke="currentColor"
+					stroke-width="1.6"/>
+			</svg>
+  		</span>
+
+		<span
+			class="absolute left-10 top-1/2 -translate-y-1/2
+			whitespace-nowrap
+			opacity-0
+			group-hover:opacity-100
+			transition-opacity duration-150 pointer-events-none">
+			首页
+		</span>
+		</a>
+	</nav>
 	</aside>
 
 	<main class="content">

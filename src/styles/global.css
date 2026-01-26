@@ -345,7 +345,6 @@ input:-ms-input-placeholder {
 
 @import "tailwindcss";
 
-
 @layer base {
   h1 { @apply text-3xl font-bold my-4; }
   h2 { @apply text-2xl font-semibold my-3; }
