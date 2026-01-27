@@ -5,6 +5,7 @@
     --text-color: #333;
     --shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
     --basic-href: #00E187D0;
+    --blur-sz: 4px;
 }
 
 .dark-theme {
@@ -39,8 +40,8 @@ a {
 
 .glass-sidebar {
     background: var(--glass-bg);
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
+    backdrop-filter: blur(var(--blur-sz));
+    -webkit-backdrop-filter: blur(var(--blur-sz));
     border: 1px solid var(--glass-border);
     box-shadow: var(--shadow);
 }
@@ -54,8 +55,8 @@ a {
 
 .glass-panel {
     background: var(--glass-bg);
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
+    backdrop-filter: blur(var(--blur-sz));
+    -webkit-backdrop-filter: blur(var(--blur-sz));
     border: 1px solid var(--glass-border);
     border-radius: 10px;
     box-shadow: var(--shadow);
@@ -64,8 +65,8 @@ a {
 
 .glass-btn {
     background: var(--glass-bg);
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
+    backdrop-filter: blur(var(--blur-sz));
+    -webkit-backdrop-filter: blur(var(--blur-sz));
     border: 1px solid var(--glass-border);
     border-radius: 10px;
     box-shadow: var(--shadow);
