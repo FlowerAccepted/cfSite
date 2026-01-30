@@ -8,12 +8,15 @@ function getCookie(request, name) {
 }
 
 export async function requireLogin(request, env) {
-  const sessionId = getCookie(request, "session");
-  if (!sessionId) return null;
+  const cookie = request.headers.get("Cookie") || "";
+  const m = cookie.match(/session=([^;]+)/);
+  if (!m) return new Response("Unauthorized", { status: 401 });
 
   const row = await env.DB.prepare(
-    "SELECT uid FROM sessions WHERE id = ?"
-  ).bind(sessionId).first();
+    "SELECT uid FROM sessions WHERE id=? AND expires_at > ?"
+  ).bind(m[1], Date.now()).first();
 
-  return row?.uid ?? null;
+  if (!row) return new Response("Unauthorized", { status: 401 });
+
+  return row.uid;
 }

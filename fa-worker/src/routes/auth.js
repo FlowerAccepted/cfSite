@@ -1,6 +1,7 @@
 import * as tools from '../utils/tools.js';
 import { requireLogin } from '../utils/authGuard.js';
 
+/* ================= 注册 ================= */
 export async function handleRegister(request, env) {
 	let body;
 	try {
@@ -10,66 +11,93 @@ export async function handleRegister(request, env) {
 	}
 
 	const { username, password } = body;
-	if (!username || !password) return new Response('Missing fields', { status: 400 });
+	if (!username || !password) {
+		return new Response('Missing fields', { status: 400 });
+	}
 
 	const passwordError = tools.chkPassword(password);
-	if (passwordError) return new Response(passwordError, { status: 400 });
+	if (passwordError) {
+		return new Response(passwordError, { status: 400 });
+	}
 
-	const passwordHash = await tools.hashPassword(password);
+	const { hash, salt } = await tools.hashPassword(password);
 	const profile = { nickname: username, avatar: null, roles: ['user'] };
 
 	try {
 		await env.DB.prepare(
 			`
-      INSERT INTO users (username, password_hash, create_time, profile)
-      VALUES (?, ?, ?, json(?))
-    `,
+      INSERT INTO users (username, password_hash, password_salt, create_time, profile)
+      VALUES (?, ?, ?, ?, json(?))
+      `,
 		)
-			.bind(username, passwordHash, Date.now(), JSON.stringify(profile))
+			.bind(username, hash, salt, Date.now(), JSON.stringify(profile))
 			.run();
 
 		return new Response('OK');
 	} catch (e) {
 		console.error(e);
-		return new Response('DB error: ' + (e?.message ?? String(e)), { status: 500 });
+		return new Response('DB error', { status: 500 });
 	}
 }
 
+/* ================= 登录 ================= */
 export async function handleLogin(request, env) {
-  const { username, password } = await request.json();
+	let body;
+	try {
+		body = await request.json();
+	} catch {
+		return new Response('Invalid JSON', { status: 400 });
+	}
 
-  const passwordHash = await tools.hashPassword(password);
+	const { username, password } = body;
+	if (!username || !password) {
+		return new Response('Missing fields', { status: 400 });
+	}
 
-  const user = await env.DB.prepare(
-    "SELECT uid, profile FROM users WHERE username=? AND password_hash=?"
-  ).bind(username, passwordHash).first();
+	const user = await env.DB.prepare(
+		`
+    SELECT uid, password_hash, password_salt, profile
+    FROM users WHERE username=?
+    `,
+	)
+		.bind(username)
+		.first();
 
-  if (!user) {
-    return new Response("Invalid username or password", { status: 401 });
-  }
+	if (!user) {
+		return new Response('Invalid username or password', { status: 401 });
+	}
 
-  const sessionId = crypto.randomUUID();
+	const ok = await tools.verifyPassword(password, user.password_salt, user.password_hash);
 
-  await env.DB.prepare(
-    "INSERT INTO sessions (id, uid, create_time) VALUES (?, ?, ?)"
-  ).bind(sessionId, user.uid, Date.now()).run();
+	if (!ok) {
+		return new Response('Invalid username or password', { status: 401 });
+	}
 
-  return new Response(
-    JSON.stringify({ success: true, profile: JSON.parse(user.profile) }),
-    {
-      headers: {
-        "Content-Type": "application/json",
-        "Set-Cookie": `session=${sessionId}; HttpOnly; Path=/; SameSite=Lax`
-      }
-    }
-  );
+	const sessionId = crypto.randomUUID();
+	const expiresAt = Date.now() + 7 * 24 * 3600 * 1000;
+
+	await env.DB.prepare(
+		`
+    INSERT INTO sessions (id, uid, expires_at)
+    VALUES (?, ?, ?)
+    `,
+	)
+		.bind(sessionId, user.uid, expiresAt)
+		.run();
+	const secure = request.headers.get('X-Forwarded-Proto') === 'https';
+
+	return new Response(JSON.stringify({ ok: true, profile: JSON.parse(user.profile) }), {
+		headers: {
+			'Content-Type': 'application/json',
+			'Set-Cookie': `session=${sessionId}; HttpOnly; Path=/; SameSite=Lax${secure ? '; Secure' : ''}`,
+		},
+	});
 }
 
+/* ================= 改密码 ================= */
 export async function handleChangePassword(request, env) {
-	const auth = requireLogin(request, env);
-	if (auth instanceof Response) return auth;
-
-	const { uid } = auth;
+	const uid = await requireLogin(request, env);
+	if (uid instanceof Response) return uid;
 
 	let body;
 	try {
@@ -79,43 +107,52 @@ export async function handleChangePassword(request, env) {
 	}
 
 	const { oldPassword, newPassword } = body;
-	if (!oldPassword || !newPassword) return new Response('Missing fields', { status: 400 });
-
-	const oldHash = await tools.hashPassword(oldPassword);
+	if (!oldPassword || !newPassword) {
+		return new Response('Missing fields', { status: 400 });
+	}
 
 	const user = await env.DB.prepare(
 		`
-    SELECT uid FROM users
-    WHERE uid = ? AND password_hash = ?
-  `,
+    SELECT password_hash, password_salt
+    FROM users WHERE uid=?
+    `,
 	)
-		.bind(uid, oldHash)
+		.bind(uid)
 		.first();
 
-	if (!user) return new Response('Old password incorrect', { status: 401 });
+	if (!user) {
+		return new Response('User not found', { status: 404 });
+	}
+
+	const ok = await tools.verifyPassword(oldPassword, user.password_salt, user.password_hash);
+
+	if (!ok) {
+		return new Response('Old password incorrect', { status: 401 });
+	}
 
 	const passwordError = tools.chkPassword(newPassword);
-	if (passwordError) return new Response(passwordError, { status: 400 });
+	if (passwordError) {
+		return new Response(passwordError, { status: 400 });
+	}
 
-	const newHash = await tools.hashPassword(newPassword);
+	const { hash, salt } = await tools.hashPassword(newPassword);
 
 	await env.DB.prepare(
 		`
-    UPDATE users SET password_hash = ?
-    WHERE uid = ?
-  `,
+    UPDATE users
+    SET password_hash=?, password_salt=?
+    WHERE uid=?
+    `,
 	)
-		.bind(newHash, uid)
+		.bind(hash, salt, uid)
 		.run();
 
 	return new Response('Password updated');
 }
 
+/* ================= 更新资料 ================= */
 export async function handleUpdateProfile(request, env) {
-	const auth = requireLogin(request, env);
-	if (!auth) return new Response('Unauthorized', { status: 401 });
-	const { uid } = auth;
-
+	const uid = await requireLogin(request, env);
 	if (uid instanceof Response) return uid;
 
 	let body;
@@ -127,55 +164,36 @@ export async function handleUpdateProfile(request, env) {
 
 	const { nickname, avatar, bio, links } = body;
 
-	// 读取旧 profile
-	const row = await env.DB.prepare(
-		`
-    SELECT profile FROM users WHERE uid = ?
-  `,
-	)
-		.bind(uid)
-		.first();
+	const row = await env.DB.prepare(`SELECT profile FROM users WHERE uid=?`).bind(uid).first();
 
-	if (!row) return new Response('User not found', { status: 404 });
+	if (!row) {
+		return new Response('User not found', { status: 404 });
+	}
 
 	let profile = {};
 	try {
 		profile = row.profile ? JSON.parse(row.profile) : {};
-	} catch {
-		profile = {};
-	}
+	} catch {}
 
-	// 字段级 merge（兼容未来字段）
 	if (nickname !== undefined) profile.nickname = nickname;
 	if (avatar !== undefined) profile.avatar = avatar;
 	if (bio !== undefined) profile.bio = bio;
 	if (links !== undefined) profile.links = links;
 
-	await env.DB.prepare(
-		`
-    UPDATE users SET profile = json(?)
-    WHERE uid = ?
-  `,
-	)
-		.bind(JSON.stringify(profile), uid)
-		.run();
+	await env.DB.prepare(`UPDATE users SET profile=json(?) WHERE uid=?`).bind(JSON.stringify(profile), uid).run();
 
 	return new Response(JSON.stringify(profile), {
 		headers: { 'Content-Type': 'application/json' },
 	});
 }
 
+/* ================= 登出 ================= */
 export async function handleLogout(request, env) {
-	const sessionId = getCookie(request, 'session');
+	const cookie = request.headers.get('Cookie') || '';
+	const m = cookie.match(/session=([^;]+)/);
 
-	if (sessionId) {
-		await env.DB.prepare(
-			`
-      DELETE FROM sessions WHERE id = ?
-    `,
-		)
-			.bind(sessionId)
-			.run();
+	if (m) {
+		await env.DB.prepare(`DELETE FROM sessions WHERE id=?`).bind(m[1]).run();
 	}
 
 	return new Response(JSON.stringify({ ok: true }), {
@@ -186,25 +204,30 @@ export async function handleLogout(request, env) {
 	});
 }
 
+/* ================= 当前用户 ================= */
 export async function handleMe(request, env) {
-  const uid = await requireLogin(request, env);
-  if (!uid) {
-    return new Response("Unauthorized", { status: 401 });
-  }
+	const uid = await requireLogin(request, env);
+	if (uid instanceof Response) return uid;
 
-  const user = await env.DB.prepare(
-    "SELECT uid, username, profile FROM users WHERE uid = ?"
-  ).bind(uid).first();
+	const user = await env.DB.prepare(
+		`
+    SELECT uid, username, profile
+    FROM users WHERE uid=?
+    `,
+	)
+		.bind(uid)
+		.first();
 
-  if (!user) {
-    return new Response("User not found", { status: 404 });
-  }
+	if (!user) {
+		return new Response('User not found', { status: 404 });
+	}
 
-  return new Response(JSON.stringify({
-    uid: user.uid,
-    username: user.username,
-    profile: JSON.parse(user.profile)
-  }), {
-    headers: { "Content-Type": "application/json" }
-  });
+	return new Response(
+		JSON.stringify({
+			uid: user.uid,
+			username: user.username,
+			profile: JSON.parse(user.profile),
+		}),
+		{ headers: { 'Content-Type': 'application/json' } },
+	);
 }
