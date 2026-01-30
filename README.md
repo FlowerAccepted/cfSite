@@ -1,7 +1,7 @@
-![](https://cdn.jsdmirror.com/gh/FlowerAccepted/gh-src-for-cfsite-dns@main/favicon.svg)
-
-# 欢迎来到 FlowerAccepted 的网站！
+# 欢迎来到 [FlowerAccepted 的网站！](https://faccepted.pages.dev/)
 
 发现实用工具，阅读绝妙文章，探索新鲜知识。欢迎光临拙站！
 
 （本站目前仍在建设中，敬请期待更多内容喵~）
+
+# 征集使上面的图标固定的边栏样式和能切实防止“管理员偷窥用户密码”的代码！（请 PR）
