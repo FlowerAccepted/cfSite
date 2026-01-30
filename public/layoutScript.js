@@ -1,4 +1,6 @@
-// 主题切换
-document.getElementById('theme-toggle').addEventListener('click', () => {
-    document.body.classList.toggle('dark-theme');
-});
+const themeBtn = document.getElementById("theme-toggle");
+if (themeBtn) {
+  themeBtn.addEventListener("click", () => {
+    document.body.classList.toggle("dark-theme");
+  });
+}

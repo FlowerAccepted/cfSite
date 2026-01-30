@@ -5,3 +5,9 @@ CREATE TABLE IF NOT EXISTS users (
   create_time INTEGER NOT NULL,
   profile JSON NOT NULL DEFAULT '{}'
 );
+
+CREATE TABLE IF NOT EXISTS sessions (
+  id TEXT PRIMARY KEY,
+  uid INTEGER NOT NULL,
+  create_time INTEGER NOT NULL
+);

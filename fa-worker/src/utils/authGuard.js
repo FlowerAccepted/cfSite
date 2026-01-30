@@ -1,24 +1,19 @@
-import * as tools from "./tools.js";
-
 function getCookie(request, name) {
   const cookie = request.headers.get("Cookie");
   if (!cookie) return null;
   return cookie
     .split("; ")
     .find(v => v.startsWith(name + "="))
-    ?.split("=")[1];
+    ?.split("=")[1] ?? null;
 }
 
-export function requireLogin(request, env) {
-  const token = getCookie(request, "token");
-  if (!token) {
-    return new Response("Unauthorized", { status: 401 });
-  }
+export async function requireLogin(request, env) {
+  const sessionId = getCookie(request, "session");
+  if (!sessionId) return null;
 
-  try {
-    const payload = tools.verifyJWT(token, env.JWT_SECRET);
-    return payload; // { uid, profile, iat }
-  } catch {
-    return new Response("Invalid token", { status: 401 });
-  }
+  const row = await env.DB.prepare(
+    "SELECT uid FROM sessions WHERE id = ?"
+  ).bind(sessionId).first();
+
+  return row?.uid ?? null;
 }
