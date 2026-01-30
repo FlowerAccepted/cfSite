@@ -84,12 +84,11 @@ export async function handleLogin(request, env) {
 	)
 		.bind(sessionId, user.uid, expiresAt)
 		.run();
-	const secure = request.headers.get('X-Forwarded-Proto') === 'https';
 
 	return new Response(JSON.stringify({ ok: true, profile: JSON.parse(user.profile) }), {
 		headers: {
 			'Content-Type': 'application/json',
-			'Set-Cookie': `session=${sessionId}; HttpOnly; Path=/; SameSite=Lax${secure ? '; Secure' : ''}`,
+			'Set-Cookie': `session=${sessionId}; ` + `HttpOnly; Path=/; ` + `SameSite=None; Secure`,
 		},
 	});
 }
