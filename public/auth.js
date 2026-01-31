@@ -1,46 +1,61 @@
+async function sha256Hex(str) {
+    const data = new TextEncoder().encode(str);
+    const digest = await crypto.subtle.digest("SHA-256", data);
+    return Array.from(new Uint8Array(digest))
+        .map((b) => b.toString(16).padStart(2, "0"))
+        .join("");
+}
+
 export function setupAuth(API_BASE) {
-  async function apiFetch(path, options = {}) {
-    return fetch(`${API_BASE}${path}`, {
-      credentials: "include",
-      ...options,
-      headers: {
-        "Content-Type": "application/json",
-        ...(options.headers || {})
-      }
-    });
-  }
-
-  window.register = async function () {
-    const username = document.getElementById("username").value.trim();
-    const password = document.getElementById("password").value;
-    const confirm = document.getElementById("confirm-password")?.value;
-    const msg = document.getElementById("msg");
-
-    if (confirm !== undefined && password !== confirm) {
-      msg.textContent = "两次输入的密码不一致";
-      return;
+    async function apiFetch(path, options = {}) {
+        return fetch(`${API_BASE}${path}`, {
+            credentials: "include",
+            ...options,
+            headers: {
+                "Content-Type": "application/json",
+                ...(options.headers || {}),
+            },
+        });
     }
 
-    const res = await apiFetch("/api/register", {
-      method: "POST",
-    headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ username, password })
-    });
+    window.register = async function () {
+        const username = document.getElementById("username").value.trim();
+        const password = document.getElementById("password").value;
+        const confirm = document.getElementById("confirm-password")?.value;
+        const msg = document.getElementById("msg");
 
-    msg.textContent = await res.text();
-  };
+        if (confirm !== undefined && password !== confirm) {
+            msg.textContent = "两次输入的密码不一致";
+            return;
+        }
+        const passwordHash = await sha256Hex(password);
+        const res = await apiFetch("/api/register", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                username,
+                password: passwordHash,
+            }),
+        });
 
-  window.login = async function () {
-    const username = document.getElementById("username").value.trim();
-    const password = document.getElementById("password").value;
-    const msg = document.getElementById("msg");
+        msg.textContent = await res.text();
+    };
 
-    const res = await apiFetch("/api/login", {
-      method: "POST",
-    headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ username, password })
-    });
+    window.login = async function () {
+        const username = document.getElementById("username").value.trim();
+        const password = document.getElementById("password").value;
+        const msg = document.getElementById("msg");
+        const passwordHash = await sha256Hex(password);
 
-    msg.textContent = res.ok ? "登录成功" : await res.text();
-  };
+        const res = await apiFetch("/api/login", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                username,
+                password: passwordHash,
+            }),
+        });
+
+        msg.textContent = res.ok ? "登录成功" : await res.text();
+    };
 }

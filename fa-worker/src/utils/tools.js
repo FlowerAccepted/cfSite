@@ -67,18 +67,10 @@ export async function verifyPassword(password, saltHex, hashHex) {
 /* ========= 密码规则 ========= */
 export function chkPassword(password) {
   if (typeof password !== 'string')
-    return '密码必须是字符串';
-  if (password.length < 8 || password.length > 64)
-    return '密码长度必须在 8–64 之间';
-  if (/\s/.test(password))
-    return '密码不能包含空格';
-  if (!/[A-Za-z]/.test(password))
-    return '必须包含字母';
-  if (!/[0-9]/.test(password))
-    return '必须包含数字';
-  if (!/[!@#$%^&*._-]/.test(password))
-    return '必须包含特殊字符';
-  if (!/^[A-Za-z0-9!@#$%^&*._-]+$/.test(password))
-    return '包含非法字符';
+    return '密码哈希必须是字符串';
+  if (!/^[0-9a-f]+$/.test(password))
+    return '密码哈希不是 SHA-256 十六进制格式';
+  if (password.length != 64)
+    return '密码哈希长度不是 SHA-256 的 64 字节';
   return null;
 }

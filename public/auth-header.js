@@ -10,7 +10,6 @@ export async function initAuthHeader(API_BASE) {
     // 未登录
     if (!res.ok) {
         el.innerHTML = `
-	  <button id="theme-toggle" class="glass-btn">切换主题</button>
       <a class="glass-btn" href="/login">登录</a>
       <a class="glass-btn" href="/register">注册</a>
     `;
