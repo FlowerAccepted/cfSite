@@ -21,15 +21,24 @@ export async function initAuthHeader(API_BASE) {
     const avatar = user.profile?.avatar ?? "/default-avatar.png";
 
     el.innerHTML = `
-    <div class="relative group">
-      <img src="${avatar}"
-           class="w-8 h-8 rounded-full cursor-pointer" />
-
-      <div class="absolute right-0 mt-2 hidden group-hover:block
-                  glass-sidebar rounded shadow">
-        <a class="block px-4 py-2" href="/profile">个人中心</a>
-        <a class="block px-4 py-2" href="/logout">退出登录</a>
-      </div>
+    <div class="relative group inline-block">
+        <img src="${avatar}" class="w-8 h-8 rounded-full cursor-pointer" />
+        <div
+            class="absolute right-0 top-full pt-2
+                opacity-0 pointer-events-none
+                group-hover:opacity-100
+                group-hover:pointer-events-auto
+                grid grid-cols-2 gap-2
+                list-panel w-64">
+            <a class="list-btn block px-4 py-2 text-center hover:bg-white/10"
+            href="/profile">
+            个人中心
+            </a>
+            <a class="list-btn block px-4 py-2 text-center hover:bg-white/10"
+            href="/logout">
+            退出登录
+            </a>
+        </div>
     </div>
-  `;
+    `;
 }
