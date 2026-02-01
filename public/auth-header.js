@@ -18,7 +18,7 @@ export async function initAuthHeader(API_BASE) {
 
     // 已登录
     const user = await res.json();
-    const avatar = user.profile?.avatar ?? "/default-avatar.png";
+    const avatar = user.profile?.avatar ?? "https://cdn.jsdmirror.com/gh/FlowerAccepted/gh-src-for-cfsite-dns@main/defult_avatar.png";
 
     el.innerHTML = `
     <div class="relative group inline-block">
