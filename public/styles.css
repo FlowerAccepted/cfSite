@@ -8,6 +8,9 @@
     --blur-sz: 4px;
     --nglass-bg: #d9faed;
     --nglass-front: #93ffd4d0;
+    --stressed-text: #00FFAA;
+    --right-tools-bg: rgba(0, 255, 153, 0.9);
+    --rev-text-color: #FFF
 }
 
 .dark-theme {
@@ -17,6 +20,7 @@
     --shadow: 0 4px 6px rgba(255, 255, 255, 0.1);
     --nglass-bg: #000000;
     --nglass-front: #003e25d0;
+    --rev-text-color: #000
 }
 
 body {
@@ -391,8 +395,36 @@ input:-ms-input-placeholder {
 }
 
 .scroll-hint {
-  text-align: center;
-  color: aquamarine;
+  color: var(--stressed-text);
+  font-size: 20px;
+
+  position: fixed;
+  bottom: 32px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 40;
+
+  pointer-events: none;
+
+  opacity: 1;
+  transition: opacity .6s ease, transform .6s ease;
+}
+
+.scroll-hint.visible {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+
+.scroll-hint.fading {
+  opacity: 0;
+  transform: translateX(-50%) translateY(12px);
+}
+
+.scroll-hint.hidden {
+  opacity: 0;
+}
+
+.float {
   animation: float 1.8s ease-in-out infinite;
 }
 
@@ -428,4 +460,54 @@ input:-ms-input-placeholder {
   0%   { opacity: 0.2; }
   50%  { opacity: 0.8; }
   100% { opacity: 0.2; }
+}
+
+.back-to-top {
+  position: fixed;
+  flex-direction: column;
+  right: 24px;
+  bottom: 48px;
+  z-index: 50;
+
+  padding: 6px 8px;
+  border-radius: 6px;
+
+  background: var(--right-tools-bg);
+  backdrop-filter: blur(10px);
+  color: var(--text-color);
+
+  display: flex;
+  align-items: center;
+  gap: 1px;
+
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 1s ease, transform .35s ease;
+}
+
+
+.back-to-top.show {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.back-to-top:hover {
+  transform: scale(1.2);
+}
+
+.back-to-up-arrow {
+  color: var(--rev-text-color);
+  width: 10px;
+  height: 10px;
+
+  border-left: 2px solid currentColor;
+  border-top: 2px solid currentColor;
+  transform: rotate(45deg);
+  animation: arrowFade 1.8s infinite;
+}
+
+.back-to-up-text {
+  font-size: 10px;
+  color: var(--rev-text-color);
+  line-height: 1;
 }

@@ -21,13 +21,6 @@ const renderedMarkdown = marked(markdownContent, { renderer });
 <BaseLayout title="首页 - FAc's Site">
     <section id="markdown-content" class="glass-panel">
         <div id="markdown-render" set:html={renderedMarkdown} />
-        <div class="scroll-hint">
-        <p>下滑查看更多</p>
-            <div class="arrows">
-                <span class="arrow"></span>
-                <span class="arrow"></span>
-            </div>
-        </div>
     </section>
 
     <section class="title-section glass-panel">
@@ -37,5 +30,43 @@ const renderedMarkdown = marked(markdownContent, { renderer });
     <section id="tools-list">
         <div id="categories"></div>
     </section>
+    <div id="scroll-hint" class="scroll-hint">
+        <div class="float">
+            <p>下滑查看更多</p>
+            <div class="arrows">
+                <span class="arrow"></span>
+                <span class="arrow"></span>
+            </div>
+        </div>
+    </div>
+
     <script src="/index.js" is:inline></script>
+    <script type="module" is:inline>
+        const hint = document.getElementById("scroll-hint");
+
+        let state = "visible";
+        let timer = null;
+        const FADE_TIME = 600;
+
+        window.addEventListener("scroll", () => {
+            const shouldHide = window.scrollY > 80;
+            if (shouldHide && state === "visible") {
+                state = "fading";
+                hint.classList.remove("visible");
+                hint.classList.add("fading");
+
+                timer = setTimeout(() => {
+                    hint.classList.remove("fading");
+                    hint.classList.add("hidden");
+                    state = "hidden";
+                }, FADE_TIME);
+            }
+            if (!shouldHide && state === "hidden") {
+                clearTimeout(timer);
+                hint.classList.remove("hidden");
+                hint.classList.add("visible");
+                state = "visible";
+            }
+        });
+    </script>
 </BaseLayout>
