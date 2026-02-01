@@ -64,4 +64,16 @@ export function setupAuth(API_BASE) {
         if (!res.ok) return;
         location.href = "/";
     };
+
+    window.logout = async function () {
+    await apiFetch("/api/logout", {
+        method: "POST",
+        credentials: "include",
+        headers: { 
+            "Content-Type": "application/json",
+            "Cookie": document.cookie,
+        },
+    });
+    location.href = "/";
+    }
 }

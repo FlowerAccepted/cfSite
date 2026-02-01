@@ -40,6 +40,8 @@ export default {
       res = await auth.handleChangePassword(request, env);
     else if (request.method === 'POST' && path === '/api/update-profile')
       res = await auth.handleUpdateProfile(request, env);
+    else if (request.method === 'POST' && path === '/api/logout')
+      res = await auth.handleLogout(request, env);
     else if (request.method === 'GET' && path === '/api/me')
       res = await auth.handleMe(request, env);
     else

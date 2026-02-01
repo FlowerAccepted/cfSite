@@ -1,0 +1,10 @@
+---
+const API_BASE = import.meta.env.PUBLIC_API_BASE;
+---
+
+<script type="module" define:vars={{ API_BASE }}>
+    import { setupAuth } from "../auth.js";
+    setupAuth(API_BASE);
+    logout();
+    window.location.href = "/";
+</script>
