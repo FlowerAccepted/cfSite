@@ -71,21 +71,26 @@ a {
     padding: 20px;
 }
 
+@keyframes pulse-scale {
+  0%   { transform: scale(1.03); }
+  50%  { transform: scale(1.0618); }
+  100% { transform: scale(1.03); }
+}
+
 .glass-btn {
-    background: var(--glass-bg);
-    backdrop-filter: blur(var(--blur-sz));
-    -webkit-backdrop-filter: blur(var(--blur-sz));
-    border: 1px solid var(--glass-border);
-    border-radius: 10px;
-    box-shadow: var(--shadow);
-    padding: 5px 10px;
-    cursor: pointer;
-    color: var(--text-color);
-    transition: transform 0.1618s ease;
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--blur-sz));
+  -webkit-backdrop-filter: blur(var(--blur-sz));
+  border: 1px solid var(--glass-border);
+  border-radius: 10px;
+  box-shadow: var(--shadow);
+  padding: 5px 10px;
+  cursor: pointer;
+  color: var(--text-color);
 }
 
 .glass-btn:hover {
-    transform: scale(1.0618);
+  animation: pulse-scale 0.9s ease-in-out infinite;
 }
 
 .glass-btn:disabled {
@@ -199,13 +204,18 @@ a {
     gap: 20px;
 }
 
-.category:hover {
-    transform: translateY(-5px);
+@keyframes category-float {
+  0%   { transform: translateY(0); }
+  50%  { transform: translateY(-5px); }
+  100% { transform: translateY(0); }
 }
 
 .category {
-    padding: 20px;
-    transition: transform 0.618s;
+  padding: 20px;
+}
+
+.category:hover {
+  animation: category-float 1.2s ease-in-out infinite;
 }
 
 .category h3 {
@@ -230,10 +240,12 @@ a {
     padding: 15px;
     color: var(--text-color);
     text-decoration: none;
-    transition: transform 0.2s;
+    transform: translateY(0);
+    transition: transform 0.25s ease;
 }
 
 .link-btn:hover {
+    animation: none;
     transform: translateY(-10px);
 }
 
@@ -367,11 +379,10 @@ input:-ms-input-placeholder {
     border-radius: 10px;
     box-shadow: var(--shadow);
     padding: 20px;
-    transition: 0.618s ease, transform 0.618s;
 }
 
 .list-panel:hover {
-    transform: translateY(5px);
+    animation: float 1.618s ease-in-out infinite;
 }
 
 .list-btn {
