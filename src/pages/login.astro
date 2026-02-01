@@ -5,43 +5,46 @@ const API_BASE = import.meta.env.PUBLIC_API_BASE;
 ---
 
 <BaseLayout title="登录 - FAc's Site">
-  <section class="title-section glass-panel">
-    <h1>登录</h1>
-  </section>
+    <section class="title-section glass-panel">
+        <h1>登录</h1>
+    </section>
 
-  <section class="glass-panel align-center">
-    <input id="username" class="glass-input" placeholder="用户名" /><br />
-    <form>
-    <PasswordInput id="password" class="glass-input" type="password" placeholder="密码" /><br />
-    </form>
-    <button class="glass-btn" id="login-btn" disabled>登录</button>
-    <p id="msg"></p>
-    没有账号？<a class="basic-href" href="/register">点我注册！</a>
-  </section>
+    <section class="glass-panel align-center">
+        <input id="username" class="glass-input" placeholder="用户名" /><br />
+        <form>
+            <PasswordInput
+                id="password"
+                class="glass-input"
+                type="password"
+                placeholder="密码"
+            /><br />
+        </form>
+        <button class="glass-btn" id="login-btn" disabled>登录</button>
+        <p id="msg" class="text-red-500"></p>
+        没有账号？<a class="basic-href" href="/register">点我注册！</a>
+    </section>
 
-  <script type="module" define:vars={{ API_BASE }}>
-    import { setupAuth } from "../auth.js";
-    import { initPasswordToggle } from "../password-ui.js";
+    <script type="module" define:vars={{ API_BASE }}>
+        import { setupAuth } from "../auth.js";
+        import { initPasswordToggle } from "../password-ui.js";
 
-    setupAuth(API_BASE);
-    initPasswordToggle();
+        setupAuth(API_BASE);
+        initPasswordToggle();
 
-    const username = document.getElementById("username");
-    const password = document.getElementById("password");
-    const btn = document.getElementById("login-btn");
+        const username = document.getElementById("username");
+        const password = document.getElementById("password");
+        const btn = document.getElementById("login-btn");
 
-    function update() {
-      btn.disabled =
-        !username.value.trim() ||
-        !password.value;
-    }
+        function update() {
+            btn.disabled = !username.value.trim() || !password.value;
+        }
 
-    username.addEventListener("input", update);
-    password.addEventListener("input", update);
+        username.addEventListener("input", update);
+        password.addEventListener("input", update);
 
-    btn.addEventListener("click", () => {
-      if (btn.disabled) return;
-      login();
-    });
-  </script>
+        btn.addEventListener("click", () => {
+            if (btn.disabled) return;
+            login();
+        });
+    </script>
 </BaseLayout>

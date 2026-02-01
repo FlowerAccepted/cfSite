@@ -83,7 +83,6 @@ const API_BASE = import.meta.env.PUBLIC_API_BASE;
         <main class="content">
             <slot />
         </main>
-        <script src="/layoutScript.js" is:inline></script>
         <script type="module" define:vars={{ API_BASE }}>
             import { initAuthHeader } from "/auth-header.js";
             initAuthHeader(API_BASE);

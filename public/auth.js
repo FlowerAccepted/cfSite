@@ -39,6 +39,12 @@ export function setupAuth(API_BASE) {
         });
 
         msg.textContent = await res.text();
+        if (!res.ok) return;
+        msg.classList.replace("text-red-500", "text-green-500");
+        document.getElementById("register-success").classList.replace("hidden", "flex");
+        document.getElementById("go-login").onclick = () => {
+        location.href = "/login";
+        };
     };
 
     window.login = async function () {
@@ -55,7 +61,7 @@ export function setupAuth(API_BASE) {
                 password: passwordHash,
             }),
         });
-
-        msg.textContent = res.ok ? "登录成功" : await res.text();
+        if (!res.ok) return;
+        location.href = "/";
     };
 }

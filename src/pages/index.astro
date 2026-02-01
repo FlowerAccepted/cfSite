@@ -4,12 +4,12 @@ import { marked, Renderer } from "marked";
 import fs from "fs";
 
 class CustomRenderer extends Renderer {
-  // @ts-ignore
-  link({ href, title, tokens }) {
     // @ts-ignore
-    const text = tokens.map((t) => t.text || "").join("");
-    return `<a href="${href}" class="basic-href">${text}</a>`;
-  }
+    link({ href, title, tokens }) {
+        // @ts-ignore
+        const text = tokens.map((t) => t.text || "").join("");
+        return `<a href="${href}" class="basic-href">${text}</a>`;
+    }
 }
 
 const renderer = new CustomRenderer();
@@ -18,17 +18,17 @@ const markdownContent = fs.readFileSync("src/markdown.md", "utf8");
 const renderedMarkdown = marked(markdownContent, { renderer });
 ---
 
-<BaseLayout title="导航页 - FAc's Site">
-  <section id="markdown-content" class="glass-panel">
-    <div id="markdown-render" set:html={renderedMarkdown} />
-  </section>
+<BaseLayout title="首页 - FAc's Site">
+    <section id="markdown-content" class="glass-panel">
+        <div id="markdown-render" set:html={renderedMarkdown} />
+    </section>
 
-  <section class="title-section glass-panel">
-    <h1>工具 & 链接</h1>
-  </section>
+    <section class="title-section glass-panel">
+        <h1>工具 & 链接</h1>
+    </section>
 
-  <section id="tools-list">
-    <div id="categories"></div>
-  </section>
-  <script src="/index.js" is:inline></script>
+    <section id="tools-list">
+        <div id="categories"></div>
+    </section>
+    <script src="/index.js" is:inline></script>
 </BaseLayout>

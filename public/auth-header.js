@@ -22,7 +22,7 @@ export async function initAuthHeader(API_BASE) {
 
     el.innerHTML = `
     <div class="relative group inline-block">
-        <img src="${avatar}" class="w-8 h-8 rounded-full cursor-pointer" />
+        <img src="${avatar}" alt="用户头像" class="w-8 h-8 rounded-full cursor-pointer" />
         <div
             class="absolute right-0 top-full pt-2
                 opacity-0 pointer-events-none
@@ -31,7 +31,7 @@ export async function initAuthHeader(API_BASE) {
                 grid grid-cols-2 gap-2
                 list-panel w-64">
             <a class="list-btn block px-4 py-2 text-center hover:bg-white/10"
-            href="/profile">
+            href="/whoami">
             个人中心
             </a>
             <a class="list-btn block px-4 py-2 text-center hover:bg-white/10"

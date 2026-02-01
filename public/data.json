@@ -1,19 +1,20 @@
 {
     "categories": [
         {
-            "name": "站点规则",
+            "name": "本站信息",
             "links": [
-                {"name": "关于本站", "url": "", "description": "敬请期待喵~"},
-                {"name": "用户手册", "url": "", "description": "敬请期待喵~"},
-                {"name": "社区规则", "url": "", "description": "敬请期待喵~"},
-                {"name": "图床规则", "url": "", "description": "敬请期待喵~"}
+                {"name": "关于本站", "url": "/info/about", "description": "敬请期待喵~"},
+                {"name": "用户手册", "url": "/info/manual", "description": "敬请期待喵~"},
+                {"name": "社区规则", "url": "/info/communityrules", "description": "敬请期待喵~"},
+                {"name": "隐私政策与安全", "url": "/info/privacy", "description": "敬请期待喵~"},
+                {"name": "致谢", "url": "/info/credits", "description": "敬请期待喵~"}
             ]
         },
         {
             "name": "关于 FlowerAccepted",
             "links": [
-                {"name": "站长名片", "url": "https://fa-namecard.pages.dev/", "description": "这是个预告页面喵~"},
-                {"name": "个人主页", "url": "", "description": "敬请期待喵~"}
+                {"name": "站长名片", "url": "https://fa-namecard.pages.dev/", "description": "喵~"},
+                {"name": "个人主页", "url": "/users/1", "description": "敬请期待喵~"}
             ]
         }
     ]
