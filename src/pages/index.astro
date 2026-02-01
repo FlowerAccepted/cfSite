@@ -21,6 +21,13 @@ const renderedMarkdown = marked(markdownContent, { renderer });
 <BaseLayout title="首页 - FAc's Site">
     <section id="markdown-content" class="glass-panel">
         <div id="markdown-render" set:html={renderedMarkdown} />
+        <div class="scroll-hint">
+        <p>下滑查看更多</p>
+            <div class="arrows">
+                <span class="arrow"></span>
+                <span class="arrow"></span>
+            </div>
+        </div>
     </section>
 
     <section class="title-section glass-panel">

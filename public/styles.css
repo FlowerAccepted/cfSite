@@ -389,3 +389,43 @@ input:-ms-input-placeholder {
   opacity: 0.5;
   cursor: not-allowed;
 }
+
+.scroll-hint {
+  text-align: center;
+  color: aquamarine;
+  animation: float 1.8s ease-in-out infinite;
+}
+
+@keyframes float {
+  0%   { transform: translateY(0); opacity: 0.6; }
+  50%  { transform: translateY(8px); opacity: 1; }
+  100% { transform: translateY(0); opacity: 0.6; }
+}
+
+.arrows {
+  margin-top: 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.arrow {
+  width: 12px;
+  height: 12px;
+  display: flex;
+  border-left: 2px solid currentColor;
+  border-bottom: 2px solid currentColor;
+  transform: rotate(-45deg);
+  opacity: 0.8;
+  gap: -10px;
+}
+
+.arrow:nth-child(2) {
+  animation: arrowFade 1.8s infinite;
+}
+
+@keyframes arrowFade {
+  0%   { opacity: 0.2; }
+  50%  { opacity: 0.8; }
+  100% { opacity: 0.2; }
+}
