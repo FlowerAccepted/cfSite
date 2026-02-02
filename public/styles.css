@@ -529,7 +529,7 @@ hr {
   color: var(--br-color);
 }
 
-.glass-panel p {
+.main-content p {
   margin-top: 20px;
-  margin-bottom: 20px;
+  margin-bottom: 20px; 
 }
