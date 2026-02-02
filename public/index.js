@@ -10,7 +10,7 @@ fetch('data.json')
             categoryDiv.innerHTML = `
                 <h3>${category.name}</h3>
                 <ul>
-                    ${category.links.map(link => `<li><a class="link-btn glass-btn" href="${link.url}" target="_blank"><h4>${link.name}</h4><p>${link.description}</p></a></li>`).join('')}
+                    ${category.links.map(link => `<li><a class="link-btn glass-btn" href="${link.url}"><h4>${link.name}</h4><p>${link.description}</p></a></li>`).join('')}
                 </ul>
             `;
             categoriesDiv.appendChild(categoryDiv);

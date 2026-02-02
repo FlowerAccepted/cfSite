@@ -3,11 +3,11 @@
         {
             "name": "本站信息",
             "links": [
-                {"name": "关于本站", "url": "/info/about", "description": "敬请期待喵~"},
+                {"name": "关于本站", "url": "/info/about", "description": "这里有一些关于本站的基本信息。"},
                 {"name": "用户手册", "url": "/info/manual", "description": "敬请期待喵~"},
                 {"name": "社区规则", "url": "/info/communityrules", "description": "敬请期待喵~"},
                 {"name": "隐私政策与安全", "url": "/info/privacy", "description": "敬请期待喵~"},
-                {"name": "致谢", "url": "/info/credits", "description": "敬请期待喵~"}
+                {"name": "致谢", "url": "/info/credits", "description": "隆重推出为本项目作出贡献的个人和组织！"}
             ]
         },
         {

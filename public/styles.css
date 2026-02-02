@@ -10,7 +10,8 @@
     --nglass-front: #93ffd4d0;
     --stressed-text: #00FFAA;
     --right-tools-bg: rgba(0, 255, 153, 0.9);
-    --rev-text-color: #FFF
+    --rev-text-color: #FFF;
+    --br-color: #666D;
 }
 
 .dark-theme {
@@ -20,7 +21,8 @@
     --shadow: 0 4px 6px rgba(255, 255, 255, 0.1);
     --nglass-bg: #000000;
     --nglass-front: #003e25d0;
-    --rev-text-color: #000
+    --rev-text-color: #000;
+    --br-color: #BBBD;
 }
 
 body {
@@ -521,4 +523,13 @@ input:-ms-input-placeholder {
   font-size: 10px;
   color: var(--rev-text-color);
   line-height: 1;
+}
+
+hr {
+  color: var(--br-color);
+}
+
+.glass-panel p {
+  margin-top: 20px;
+  margin-bottom: 20px;
 }
