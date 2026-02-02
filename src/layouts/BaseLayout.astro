@@ -2,6 +2,7 @@
 const { title = "FAc's Site" } = Astro.props;
 const user = Astro.locals.user;
 import "../styles/global.css";
+import SidebarLink from "@/components/SidebarLink.astro";
 const API_BASE = import.meta.env.PUBLIC_API_BASE;
 ---
 
@@ -53,31 +54,34 @@ const API_BASE = import.meta.env.PUBLIC_API_BASE;
 			duration-200
 			overflow-hidden
 			z-30
-			glass-sidebar">
-            <nav class="mt-4">
-                <a href="/" class="relative flex items-center h-10">
-                    <span class="flex items-center justify-center w-6">
-                        <svg
-                            class="w-5 h-5 shrink-0"
-                            viewBox="210.973 232.148 25.6926 26.618"
-                        >
-                            <path
-                                d="M214.894 241.005L214.894 255.457C214.894 256.838 216.013 257.957 217.394 257.957L230.206 257.957C231.587 257.957 232.706 256.838 232.706 255.457L232.706 241.005M211.782 243.8L222.128 234.465C223.079 233.608 224.523 233.607 225.475 234.463L235.857 243.8M218.368 257.957L218.368 247.202C218.368 246.86 218.646 246.582 218.988 246.582L224.748 246.582C225.091 246.582 225.368 246.86 225.368 247.202L225.368 257.957M227.04 235.886L227.04 233.577C227.04 233.235 227.318 232.957 227.66 232.957L230.603 232.957C230.946 232.957 231.223 233.235 231.223 233.577L231.223 239.581"
-                                fill="none"
-                                stroke="currentColor"
-                                stroke-width="1.6"></path>
-                        </svg>
-                    </span>
-
-                    <span class="absolute left-10 top-1/2 -translate-y-1/2
-		                    whitespace-nowrap
-		                 	opacity-0
-	                		group-hover:opacity-100
-	                		transition-opacity duration-150 pointer-events-none">
-                        首页
-                    </span>
-                </a>
-            </nav>
+			glass-sidebar"
+        >
+            <SidebarLink href="/" label="首页">
+                <svg
+                    slot="icon"
+                    class="w-5 h-5 shrink-0"
+                    viewBox="210.973 232.148 25.6926 26.618"
+                >
+                    <path
+                        d="M214.894 241.005L214.894 255.457C214.894 256.838 216.013 257.957 217.394 257.957L230.206 257.957C231.587 257.957 232.706 256.838 232.706 255.457L232.706 241.005M211.782 243.8L222.128 234.465C223.079 233.608 224.523 233.607 225.475 234.463L235.857 243.8M218.368 257.957L218.368 247.202C218.368 246.86 218.646 246.582 218.988 246.582L224.748 246.582C225.091 246.582 225.368 246.86 225.368 247.202L225.368 257.957M227.04 235.886L227.04 233.577C227.04 233.235 227.318 232.957 227.66 232.957L230.603 232.957C230.946 232.957 231.223 233.235 231.223 233.577L231.223 239.581"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="1.6"
+                    ></path>
+                </svg>
+            </SidebarLink>
+            <SidebarLink href="/info/" label="信息">
+                <svg 
+                    slot="icon"
+                    class="w-5 h-5 shrink-0"
+                    viewBox="48.5 48.5 28 28"
+                >
+                <path d="M50 62.5C50 55.5964 55.5964 50 62.5 50C69.4036 50 75 55.5964 75 62.5C75 69.4036 69.4036 75 62.5 75C55.5964 75 50 69.4036 50 62.5Z" fill="none" opacity="1" stroke="#000000" stroke-linecap="butt" stroke-linejoin="round" stroke-width="1.6"/>
+                <text fill="#000000" font-family="Ubuntu-Bold" font-size="15" opacity="1" stroke="none" text-anchor="start" transform="matrix(1 0 0 1 60.1242 54.3874)" x="0" y="0">
+                    <tspan textLength="4.335" x="0.208272" y="13.9801"><![CDATA[i]]></tspan>
+                </text>
+                </svg>
+            </SidebarLink>
         </aside>
 
         <main class="content">
@@ -92,10 +96,10 @@ const API_BASE = import.meta.env.PUBLIC_API_BASE;
             initAuthHeader(API_BASE);
             const btn = document.getElementById("back-to-top");
             window.addEventListener("scroll", () => {
-            btn.classList.toggle("show", window.scrollY > 200);
+                btn.classList.toggle("show", window.scrollY > 200);
             });
             btn.addEventListener("click", () => {
-            window.scrollTo({ top: 0, behavior: "smooth" });
+                window.scrollTo({ top: 0, behavior: "smooth" });
             });
         </script>
     </body>
