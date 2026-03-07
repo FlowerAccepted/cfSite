@@ -1,6 +1,81 @@
 import * as tools from '../utils/tools.js';
 import { requireLogin } from '../utils/authGuard.js';
 
+async function ensureUserProfilesTable(env) {
+	await env.DB.prepare(
+		`
+		CREATE TABLE IF NOT EXISTS user_profiles (
+			uid INTEGER PRIMARY KEY,
+			nickname TEXT,
+			avatar TEXT,
+			bio TEXT,
+			intro TEXT,
+			links TEXT,
+			updated_at INTEGER NOT NULL,
+			FOREIGN KEY (uid) REFERENCES users(uid) ON DELETE CASCADE
+		)
+		`,
+	).run();
+}
+
+function parseJsonSafe(value, fallback) {
+	try {
+		return value ? JSON.parse(value) : fallback;
+	} catch {
+		return fallback;
+	}
+}
+
+async function readProfileFromD1(env, uid) {
+	await ensureUserProfilesTable(env);
+	const row = await env.DB.prepare(
+		`
+		SELECT nickname, avatar, bio, intro, links
+		FROM user_profiles
+		WHERE uid=?
+		`,
+	)
+		.bind(uid)
+		.first();
+
+	if (!row) return null;
+
+	return {
+		nickname: row.nickname ?? undefined,
+		avatar: row.avatar ?? undefined,
+		bio: row.bio ?? undefined,
+		intro: row.intro ?? undefined,
+		links: parseJsonSafe(row.links, undefined),
+	};
+}
+
+async function upsertProfileToD1(env, uid, profile) {
+	await ensureUserProfilesTable(env);
+	await env.DB.prepare(
+		`
+		INSERT INTO user_profiles (uid, nickname, avatar, bio, intro, links, updated_at)
+		VALUES (?, ?, ?, ?, ?, ?, ?)
+		ON CONFLICT(uid) DO UPDATE SET
+			nickname=excluded.nickname,
+			avatar=excluded.avatar,
+			bio=excluded.bio,
+			intro=excluded.intro,
+			links=excluded.links,
+			updated_at=excluded.updated_at
+		`,
+	)
+		.bind(
+			uid,
+			profile.nickname ?? null,
+			profile.avatar ?? null,
+			profile.bio ?? null,
+			profile.intro ?? null,
+			profile.links === undefined ? null : JSON.stringify(profile.links),
+			Date.now(),
+		)
+		.run();
+}
+
 /* ================= 注册 ================= */
 export async function handleRegister(request, env) {
 	let body;
@@ -32,6 +107,11 @@ export async function handleRegister(request, env) {
 		)
 			.bind(username, hash, salt, Date.now(), JSON.stringify(profile))
 			.run();
+
+		const row = await env.DB.prepare(`SELECT uid FROM users WHERE username=?`).bind(username).first();
+		if (row?.uid) {
+			await upsertProfileToD1(env, row.uid, profile);
+		}
 
 		return new Response('OK');
 	} catch (e) {
@@ -169,10 +249,9 @@ export async function handleUpdateProfile(request, env) {
 		return new Response('User not found', { status: 404 });
 	}
 
-	let profile = {};
-	try {
-		profile = row.profile ? JSON.parse(row.profile) : {};
-	} catch {}
+	const profileFromUsers = parseJsonSafe(row.profile, {});
+	const profileFromD1 = await readProfileFromD1(env, uid);
+	let profile = { ...profileFromUsers, ...(profileFromD1 || {}) };
 
 	if (nickname !== undefined) profile.nickname = nickname;
 	if (avatar !== undefined) profile.avatar = avatar;
@@ -180,6 +259,7 @@ export async function handleUpdateProfile(request, env) {
 	if (intro !== undefined) profile.intro = intro;
 	if (links !== undefined) profile.links = links;
 
+	await upsertProfileToD1(env, uid, profile);
 	await env.DB.prepare(`UPDATE users SET profile=json(?) WHERE uid=?`).bind(JSON.stringify(profile), uid).run();
 
 	return new Response(JSON.stringify(profile), {
@@ -222,11 +302,18 @@ export async function handleMe(request, env) {
 		return new Response('User not found', { status: 404 });
 	}
 
+	const profileFromUsers = parseJsonSafe(user.profile, {});
+	const profileFromD1 = (await readProfileFromD1(env, uid)) || profileFromUsers;
+	const profile = { ...profileFromUsers, ...profileFromD1 };
+
+	// Backfill once so old users instantly get persistent D1 profile rows.
+	await upsertProfileToD1(env, uid, profile);
+
 	return new Response(
 		JSON.stringify({
 			uid: user.uid,
 			username: user.username,
-			profile: JSON.parse(user.profile),
+			profile,
 		}),
 		{ headers: { 'Content-Type': 'application/json' } },
 	);

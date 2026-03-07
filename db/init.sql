@@ -16,6 +16,18 @@ CREATE TABLE IF NOT EXISTS sessions (
   FOREIGN KEY (uid) REFERENCES users(uid) ON DELETE CASCADE
 );
 
+-- 用户资料表（持久化 bio / intro）
+CREATE TABLE IF NOT EXISTS user_profiles (
+  uid INTEGER PRIMARY KEY,
+  nickname TEXT,
+  avatar TEXT,
+  bio TEXT,
+  intro TEXT,
+  links TEXT,
+  updated_at INTEGER NOT NULL,
+  FOREIGN KEY (uid) REFERENCES users(uid) ON DELETE CASCADE
+);
+
 -- 可选：加速查 session
 CREATE INDEX IF NOT EXISTS idx_sessions_uid ON sessions(uid);
 CREATE INDEX IF NOT EXISTS idx_sessions_expires ON sessions(expires_at);
