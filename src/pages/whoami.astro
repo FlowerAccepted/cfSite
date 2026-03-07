@@ -2,14 +2,16 @@
 import BaseLayout from "../layouts/BaseLayout.astro";
 // @ts-ignore
 import ErrorMarkSign from "@/components/signs/ErrorMarkSign.astro";
+import CorrectMarkSign from "@/components/signs/CorrectMarkSign.astro";
 import MarkdownIDE from "@/components/MarkdownIDE.astro";
+import TopToast from "@/components/TopToast.astro";
 const API_BASE = import.meta.env.PUBLIC_API_BASE;
 ---
 
 <BaseLayout title="用户中心 - FAc's Site" mainClass="whoami-main">
     <section id="profile-card" class="glass-panel hidden">
         <div class="flex items-center gap-4">
-            <img id="avatar" class="h-20 w-20 rounded-full" />
+            <img id="avatar" class="h-20 w-20 rounded-full" alt="用户头像" />
             <div>
                 <h2 id="nickname" class="text-xl font-bold"></h2>
                 <p id="username" class="text-sm opacity-70"></p>
@@ -32,7 +34,7 @@ const API_BASE = import.meta.env.PUBLIC_API_BASE;
 
         <button class="glass-btn mt-4" id="intro-edit-btn">编辑个人简介</button>
 
-        <p id="intro-label" class="mt-4 text-sm opacity-70">个人简介</p>
+        <h1 id="intro-label" class="mt-4">个人简介</h1>
         <section id="intro-view" class="mt-2">
             <div id="intro-render" class="leading-relaxed"></div>
         </section>
@@ -43,6 +45,7 @@ const API_BASE = import.meta.env.PUBLIC_API_BASE;
                 <MarkdownIDE prefix="intro" fileTitle="intro.md" editorHeightClass="h-[28rem]" />
             </div>
             <div class="mt-3 flex items-center justify-end gap-2">
+                <button class="glass-btn" id="intro-apply">保存</button>
                 <button class="glass-btn" id="intro-cancel">取消</button>
                 <button class="glass-btn" id="intro-save">确定</button>
             </div>
@@ -61,6 +64,10 @@ const API_BASE = import.meta.env.PUBLIC_API_BASE;
             <button class="glass-btn justify-center" id="go-login">去登录</button>
         </div>
     </div>
+
+    <TopToast id="intro-save-toast" text="保存成功">
+        <CorrectMarkSign slot="icon" size={36} />
+    </TopToast>
 
     <script define:vars={{ API_BASE }}>
         window.__WHOAMI_API_BASE__ = API_BASE;

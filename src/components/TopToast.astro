@@ -1,0 +1,12 @@
+---
+const { id = "top-toast", text = "操作成功" } = Astro.props;
+---
+
+<div id={id} class="whoami-toast" role="status" aria-live="polite">
+    <div class="whoami-toast-inner glass-panel">
+        <div class="whoami-toast-icon">
+            <slot name="icon" />
+        </div>
+        <p id={`${id}-text`} class="whoami-toast-text">{text}</p>
+    </div>
+</div>

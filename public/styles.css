@@ -589,7 +589,12 @@ main.whoami-main #profile-card.glass-panel {
     border-color: rgba(255, 255, 255, 0.2);
 }
 main.whoami-main #intro-label {
-    padding-left: 4px;
+    margin: 1rem 0 0.35rem 4px;
+    padding: 0;
+    font-size: 2rem;
+    line-height: 1.2;
+    font-weight: 700;
+    opacity: 0.95;
 }
 main.whoami-main #intro-view {
     margin-top: 0.55rem;
@@ -639,6 +644,15 @@ main.whoami-main.whoami-editing #intro-editor .md-ide-toolbar {
 main.whoami-main.whoami-editing #intro-editor .md-tool-btn {
     background: #f2f3ea;
     border-color: #b8bda8;
+}
+main.whoami-main.whoami-editing #intro-editor .md-tool-group {
+    background: #e8ebdc;
+    border-color: #bcc2ad;
+}
+main.whoami-main.whoami-editing #intro-editor .md-group-toggle {
+    background: #eef1e4;
+    border-color: #b8bea9;
+    color: #66705e;
 }
 main.whoami-main.whoami-editing #intro-editor .md-tool-btn.is-active {
     background: #dbe2cf;
@@ -701,23 +715,99 @@ main.whoami-main.whoami-editing #intro-editor .ace_gutter {
 .md-ide-toolbar {
     display: flex;
     justify-content: space-between;
-    align-items: center;
+    align-items: flex-start;
     gap: 10px;
     padding: 8px 10px;
     border-bottom: 1px solid rgba(112, 143, 124, 0.22);
     background: rgba(238, 246, 240, 0.68);
+    position: relative;
+    z-index: 8;
 }
-.md-ide-toolbar-left,
+.md-ide-toolbar-left {
+    display: flex;
+    gap: 8px;
+    align-items: flex-start;
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow: visible;
+    padding: 1px;
+}
 .md-ide-toolbar-right {
     display: flex;
-    flex-wrap: wrap;
     gap: 6px;
     align-items: center;
+    flex: 0 0 auto;
+}
+.md-tool-group {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex: 0 0 auto;
+    padding: 4px;
+    border-radius: 10px;
+    border: 1px solid rgba(130, 153, 139, 0.34);
+    background: rgba(255, 255, 255, 0.48);
+}
+.md-tool-group .md-group-toggle {
+    display: none;
+}
+.md-tool-group.is-collapsed .md-group-toggle {
+    display: inline-flex;
+}
+.md-group-toggle {
+    width: 30px;
+    height: 30px;
+    border-radius: 8px;
+    border: 1px solid rgba(128, 153, 136, 0.38);
+    background: rgba(247, 252, 249, 0.9);
+    color: #425e50;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+}
+.md-group-toggle:hover {
+    transform: translateY(-1px);
+}
+.md-group-body {
+    display: flex;
+    gap: 4px;
+    align-items: center;
+}
+.md-tool-group.is-collapsed .md-group-body {
+    display: flex;
+    position: absolute;
+    top: calc(100% + 8px);
+    left: 0;
+    z-index: 25;
+    min-width: 180px;
+    max-width: min(320px, 80vw);
+    flex-wrap: wrap;
+    padding: 8px;
+    border-radius: 10px;
+    border: 1px solid rgba(124, 151, 136, 0.38);
+    background: rgba(247, 252, 248, 0.96);
+    box-shadow: 0 10px 30px rgba(65, 85, 76, 0.16);
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(-4px) scale(0.98);
+    pointer-events: none;
+    transition:
+        opacity 0.2s ease,
+        transform 0.22s ease,
+        visibility 0.22s ease;
+}
+.md-tool-group.is-collapsed.is-open .md-group-body {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0) scale(1);
+    pointer-events: auto;
 }
 .md-tool-btn {
-    min-width: 30px;
-    height: 28px;
-    border-radius: 7px;
+    min-width: 32px;
+    height: 30px;
+    border-radius: 8px;
     border: 1px solid rgba(128, 153, 136, 0.4);
     background: rgba(255, 255, 255, 0.78);
     color: var(--text-color);
@@ -727,6 +817,7 @@ main.whoami-main.whoami-editing #intro-editor .ace_gutter {
     font-weight: 600;
     padding: 0 8px;
     transition: transform 0.16s ease;
+    position: relative;
 }
 .md-tool-btn:hover {
     transform: translateY(-1px);
@@ -734,6 +825,79 @@ main.whoami-main.whoami-editing #intro-editor .ace_gutter {
 .md-tool-btn.is-active {
     background: rgba(193, 226, 207, 0.54);
     border-color: rgba(92, 150, 121, 0.56);
+}
+.md-icon-btn,
+.md-view-btn {
+    width: 32px;
+    min-width: 32px;
+    padding: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+.md-icon-btn svg,
+.md-view-btn svg,
+.md-group-toggle svg {
+    width: 16px;
+    height: 16px;
+    stroke: currentColor;
+    fill: none;
+    stroke-width: 1.8;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+.md-icon-btn svg *,
+.md-view-btn svg *,
+.md-group-toggle svg * {
+    fill: none !important;
+    stroke: currentColor !important;
+    stroke-width: 1.8;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+.md-sr-only {
+    display: none !important;
+}
+.whoami-toast {
+    position: fixed;
+    top: 76px;
+    right: 20px;
+    z-index: 2200;
+    width: min(280px, calc(100vw - 28px));
+    pointer-events: none;
+    opacity: 0;
+    transform: translateY(-56px);
+    transition:
+        transform 0.44s cubic-bezier(0.2, 0.84, 0.3, 1),
+        opacity 0.32s ease;
+}
+.whoami-toast.is-visible {
+    opacity: 1;
+    transform: translateY(0);
+}
+.whoami-toast.is-fading {
+    opacity: 0;
+    transform: translateY(-14px);
+}
+.whoami-toast-inner {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 14px;
+}
+.whoami-toast-icon {
+    width: 38px;
+    height: 38px;
+    flex: 0 0 auto;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+.whoami-toast-text {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--text-color);
 }
 .md-ide-split {
     display: flex;
@@ -801,6 +965,25 @@ body.md-resizing {
 .md-ide-shell .ace_gutter {
     background: rgba(232, 240, 234, 0.72) !important;
     color: rgba(73, 94, 83, 0.82) !important;
+}
+.md-ide-shell .ace_support.ace_function {
+    color: #2d78b1 !important;
+    font-weight: 600;
+}
+.md-ide-shell .ace_invalid {
+    color: #c15d5d !important;
+    text-decoration: underline wavy #c15d5d;
+}
+.md-ide-shell .ace_constant.ace_language {
+    color: #8e6a2f !important;
+}
+@media (max-width: 900px) {
+    .md-ide-toolbar {
+        align-items: stretch;
+    }
+    .md-ide-toolbar-right {
+        align-self: flex-start;
+    }
 }
 #categories {
     display: grid;

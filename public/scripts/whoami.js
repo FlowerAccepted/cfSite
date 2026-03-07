@@ -11,9 +11,12 @@ const HIGHLIGHT_JS_URL =
 const HIGHLIGHT_CSS_URL =
     "https://cdn.jsdmirror.com/npm/highlight.js@11.11.1/styles/atom-one-light.min.css";
 const CUTE_TABLE_MARKER = "<!--__LUOGU_CUTE_TABLE__-->";
+const HIDDEN_LEAF_RE = /::hidden\[([\s\S]*?)\]/g;
+const ANTI_AI_LEAF_RE = /::anti-ai\[([\s\S]*?)\]/g;
 
 let aceLoadPromise = null;
 let highlightLoadPromise = null;
+let aceCustomModeReady = false;
 
 function escapeHtml(text) {
     return String(text)
@@ -91,6 +94,89 @@ function ensureAceLoaded() {
         aceLoadPromise = loadScript(ACE_SCRIPT_URL);
     }
     return aceLoadPromise;
+}
+
+function ensureAceCustomMode() {
+    const ace = window.ace;
+    if (!ace || !ace.define || !ace.require) return false;
+    if (aceCustomModeReady) return true;
+
+    try {
+        ace.require("ace/mode/cfsite_markdown");
+        aceCustomModeReady = true;
+        return true;
+    } catch {
+        // continue and define
+    }
+
+    try {
+        ace.define(
+            "ace/mode/cfsite_markdown_highlight_rules",
+            ["require", "exports", "module", "ace/lib/oop", "ace/mode/markdown_highlight_rules"],
+            (require, exports) => {
+                const oop = require("ace/lib/oop");
+                const MarkdownHighlightRules =
+                    require("ace/mode/markdown_highlight_rules").MarkdownHighlightRules;
+
+                const CfSiteMarkdownHighlightRules = function() {
+                    MarkdownHighlightRules.call(this);
+                    const customRules = [
+                        { token: "invalid", regex: /::anti-ai\[[^\]]*\]/ },
+                        { token: "comment", regex: /::hidden\[[^\]]*\]/ },
+                        { token: "constant.language", regex: /^::cute-table\{tuack\}\s*$/ },
+                        {
+                            token: "support.function",
+                            regex: /^:::(?:info|success|warning|error)(?:\[[^\]]*\])?(?:\{open\})?\s*$/,
+                        },
+                        {
+                            token: "support.function",
+                            regex: /^:::(?:align\{(?:center|right)\}|epigraph(?:\[[^\]]*\])?)\s*$/,
+                        },
+                        { token: "support.function", regex: /^:::\s*$/ },
+                    ];
+                    this.$rules.start = customRules.concat(this.$rules.start);
+                    this.normalizeRules();
+                };
+
+                oop.inherits(CfSiteMarkdownHighlightRules, MarkdownHighlightRules);
+                exports.CfSiteMarkdownHighlightRules = CfSiteMarkdownHighlightRules;
+            },
+        );
+
+        ace.define(
+            "ace/mode/cfsite_markdown",
+            [
+                "require",
+                "exports",
+                "module",
+                "ace/lib/oop",
+                "ace/mode/markdown",
+                "ace/mode/cfsite_markdown_highlight_rules",
+            ],
+            (require, exports) => {
+                const oop = require("ace/lib/oop");
+                const MarkdownMode = require("ace/mode/markdown").Mode;
+                const CfSiteMarkdownHighlightRules =
+                    require("ace/mode/cfsite_markdown_highlight_rules").CfSiteMarkdownHighlightRules;
+
+                const Mode = function() {
+                    MarkdownMode.call(this);
+                    this.HighlightRules = CfSiteMarkdownHighlightRules;
+                    this.$id = "ace/mode/cfsite_markdown";
+                };
+
+                oop.inherits(Mode, MarkdownMode);
+                exports.Mode = Mode;
+            },
+        );
+
+        ace.require("ace/mode/cfsite_markdown");
+        aceCustomModeReady = true;
+        return true;
+    } catch (err) {
+        console.warn("custom ace markdown mode init failed:", err);
+        return false;
+    }
 }
 
 function parseFenceInfo(rawLang) {
@@ -693,8 +779,19 @@ function renderDirectiveBlock(directive, innerHtml) {
     return innerHtml;
 }
 
+function stripLeafContainersForRender(markdown) {
+    return String(markdown || "").replace(HIDDEN_LEAF_RE, "").replace(ANTI_AI_LEAF_RE, "");
+}
+
 function preprocessLuoguMarkdown(markdown) {
-    return String(markdown || "").replace(/^\s*::cute-table\{tuack\}\s*$/gm, CUTE_TABLE_MARKER);
+    return stripLeafContainersForRender(markdown).replace(
+        /^\s*::cute-table\{tuack\}\s*$/gm,
+        CUTE_TABLE_MARKER,
+    );
+}
+
+function normalizeMarkdownForCopy(markdown) {
+    return String(markdown || "").replace(ANTI_AI_LEAF_RE, "$1");
 }
 
 function renderExtendedMarkdown(markdown, renderer) {
@@ -826,10 +923,28 @@ function applyCodeRendering(root) {
         if (!code) continue;
 
         const language = pre.dataset.language || "";
+        const rawCode = code.textContent || "";
         if (window.hljs) {
-            window.hljs.highlightElement(code);
+            try {
+                const lang = String(language || "").toLowerCase();
+                let highlighted;
+                if (lang && window.hljs.getLanguage?.(lang)) {
+                    highlighted = window.hljs.highlight(rawCode, {
+                        language: lang,
+                        ignoreIllegals: true,
+                    });
+                } else {
+                    highlighted = window.hljs.highlightAuto(rawCode);
+                }
+                code.innerHTML = highlighted.value;
+                code.classList.add("hljs");
+            } catch (err) {
+                console.warn("hljs highlight failed, fallback highlighter used:", err);
+                code.innerHTML = fallbackHighlightCode(rawCode, language);
+                code.classList.add("hljs");
+            }
         } else {
-            code.innerHTML = fallbackHighlightCode(code.textContent || "", language);
+            code.innerHTML = fallbackHighlightCode(rawCode, language);
             code.classList.add("hljs");
         }
 
@@ -912,9 +1027,13 @@ export function initWhoami() {
     const introAceStatusEl = document.getElementById("intro-ide-status");
     const introPreviewEl = document.getElementById("intro-preview");
     const introCancelBtn = document.getElementById("intro-cancel");
+    const introApplyBtn = document.getElementById("intro-apply");
     const introSaveBtn = document.getElementById("intro-save");
+    const introSaveToastEl = document.getElementById("intro-save-toast");
+    const introSaveToastTextEl = document.getElementById("intro-save-toast-text");
 
     const introToolbarEl = document.getElementById("intro-toolbar");
+    const introToolbarLeftEl = document.getElementById("intro-toolbar-left");
     const introSplitEl = document.getElementById("intro-split");
     const introDividerEl = document.getElementById("intro-divider");
     const introPaneEditorEl = document.getElementById("intro-pane-editor");
@@ -932,6 +1051,8 @@ export function initWhoami() {
     let currentView = "split";
     let syncingFromEditor = false;
     let syncingFromPreview = false;
+    let statusFlashLock = false;
+    let toastHideTimer = null;
 
     function setEditingPerformanceMode(editing) {
         if (!mainContentEl) return;
@@ -951,8 +1072,38 @@ export function initWhoami() {
         if (introInputEl) introInputEl.value = value;
     }
 
+    function flashStatus(message, timeout = 1600) {
+        if (!introAceStatusEl) return;
+        statusFlashLock = true;
+        introAceStatusEl.textContent = message;
+        window.setTimeout(() => {
+            statusFlashLock = false;
+            updateAceStatus();
+        }, timeout);
+    }
+
+    function showIntroSavedToast(message = "保存成功") {
+        if (!introSaveToastEl) return;
+        if (introSaveToastTextEl) introSaveToastTextEl.textContent = message;
+
+        introSaveToastEl.classList.remove("is-fading", "is-visible");
+        // Force reflow so repeated saves replay drop-in animation.
+        void introSaveToastEl.offsetWidth;
+        introSaveToastEl.classList.add("is-visible");
+
+        if (toastHideTimer) window.clearTimeout(toastHideTimer);
+        toastHideTimer = window.setTimeout(() => {
+            introSaveToastEl.classList.add("is-fading");
+            introSaveToastEl.classList.remove("is-visible");
+            window.setTimeout(() => {
+                introSaveToastEl.classList.remove("is-fading");
+            }, 420);
+        }, 5000);
+    }
+
     function updateAceStatus() {
         if (!introAceStatusEl) return;
+        if (statusFlashLock) return;
 
         if (!introEditor) {
             if (!introInputEl) return;
@@ -1146,18 +1297,148 @@ export function initWhoami() {
         updateAceStatus();
     }
 
+    function closeCollapsedGroupMenus() {
+        introToolbarLeftEl?.querySelectorAll(".md-tool-group.is-open").forEach((el) => {
+            el.classList.remove("is-open");
+        });
+    }
+
+    function bindToolbarGroupHover() {
+        if (!introToolbarLeftEl) return;
+
+        let closeTimer = 0;
+        const clearCloseTimer = () => {
+            if (!closeTimer) return;
+            window.clearTimeout(closeTimer);
+            closeTimer = 0;
+        };
+
+        introToolbarLeftEl.addEventListener("pointerover", (event) => {
+            const target = event.target;
+            if (!(target instanceof Element)) return;
+            const group = target.closest(".md-tool-group");
+            if (!group || !group.classList.contains("is-collapsed")) return;
+            clearCloseTimer();
+            closeCollapsedGroupMenus();
+            group.classList.add("is-open");
+        });
+
+        introToolbarLeftEl.addEventListener("pointerout", (event) => {
+            const target = event.target;
+            if (!(target instanceof Element)) return;
+            const group = target.closest(".md-tool-group");
+            if (!group || !group.classList.contains("is-collapsed")) return;
+
+            const related = event.relatedTarget;
+            if (related instanceof Node && group.contains(related)) return;
+
+            clearCloseTimer();
+            closeTimer = window.setTimeout(() => {
+                group.classList.remove("is-open");
+            }, 120);
+        });
+    }
+
+    function relayoutToolbarGroups() {
+        if (!introToolbarLeftEl) return;
+        const groups = Array.from(introToolbarLeftEl.querySelectorAll(".md-tool-group"));
+        if (groups.length === 0) return;
+
+        groups.forEach((group) => {
+            group.classList.remove("is-collapsed", "is-open");
+        });
+
+        for (
+            let idx = groups.length - 1;
+            idx >= 0 && introToolbarLeftEl.scrollWidth > introToolbarLeftEl.clientWidth;
+            idx -= 1
+        ) {
+            groups[idx].classList.add("is-collapsed");
+        }
+    }
+
+    async function copyMarkdownWithPolicy() {
+        const raw = getIntroEditorValue();
+        const normalized = normalizeMarkdownForCopy(raw);
+
+        const fallbackCopy = () => {
+            const textarea = document.createElement("textarea");
+            textarea.value = normalized;
+            textarea.style.position = "fixed";
+            textarea.style.left = "-9999px";
+            document.body.appendChild(textarea);
+            textarea.focus();
+            textarea.select();
+            try {
+                document.execCommand("copy");
+            } finally {
+                textarea.remove();
+            }
+        };
+
+        try {
+            if (navigator.clipboard?.writeText) {
+                await navigator.clipboard.writeText(normalized);
+            } else {
+                fallbackCopy();
+            }
+            flashStatus("已复制 Markdown（anti-ai 已展开）");
+        } catch (err) {
+            console.warn("clipboard write failed, fallback to execCommand:", err);
+            fallbackCopy();
+            flashStatus("已复制 Markdown（fallback）");
+        }
+    }
+
+    function initToolbarResponsiveLayout() {
+        if (!introToolbarEl || !introToolbarLeftEl) return;
+
+        relayoutToolbarGroups();
+        const resizeHandler = () => relayoutToolbarGroups();
+        window.addEventListener("resize", resizeHandler, { passive: true });
+
+        if ("ResizeObserver" in window) {
+            const observer = new ResizeObserver(() => {
+                relayoutToolbarGroups();
+            });
+            observer.observe(introToolbarEl);
+            observer.observe(introToolbarLeftEl);
+        }
+
+        document.addEventListener("click", (event) => {
+            const target = event.target;
+            if (!(target instanceof Node)) return;
+            if (!introToolbarEl.contains(target)) closeCollapsedGroupMenus();
+        });
+    }
+
     function bindToolbar() {
         if (!introToolbarEl) return;
 
         introToolbarEl.addEventListener("click", (event) => {
             const target = event.target;
-            if (!(target instanceof HTMLElement)) return;
+            if (!(target instanceof Element)) return;
             const button = target.closest("button");
             if (!button) return;
+
+            if (button.dataset.groupToggle !== undefined) {
+                const group = button.closest(".md-tool-group");
+                if (!group || !group.classList.contains("is-collapsed")) return;
+                const nextOpen = !group.classList.contains("is-open");
+                closeCollapsedGroupMenus();
+                if (nextOpen) group.classList.add("is-open");
+                return;
+            }
 
             const mode = button.dataset.view;
             if (mode) {
                 setViewMode(mode);
+                return;
+            }
+
+            const action = button.dataset.action;
+            if (action === "copy-markdown") {
+                void copyMarkdownWithPolicy();
                 return;
             }
 
@@ -1177,7 +1458,10 @@ export function initWhoami() {
 
             introEditor = ace.edit("intro-ide");
             introEditor.setTheme("ace/theme/chrome");
-            introEditor.session.setMode("ace/mode/markdown");
+            const useCustomMode = ensureAceCustomMode();
+            introEditor.session.setMode(
+                useCustomMode ? "ace/mode/cfsite_markdown" : "ace/mode/markdown",
+            );
             introEditor.session.setUseWrapMode(true);
             introEditor.setShowPrintMargin(false);
             introEditor.setOptions({
@@ -1251,6 +1535,26 @@ export function initWhoami() {
         setEditingPerformanceMode(false);
     }
 
+    async function saveIntro(keepEditing) {
+        const nextIntro = getIntroEditorValue();
+        const updated = await updateProfile({ intro: nextIntro });
+        if (!updated) return false;
+
+        currentIntro = updated.intro ?? nextIntro;
+        renderMarkdown(introRenderEl, currentIntro, introRenderer);
+        showIntroSavedToast("保存成功");
+
+        if (keepEditing) {
+            flashStatus("已保存");
+            renderMarkdown(introPreviewEl, currentIntro, introRenderer);
+            syncPreviewFromEditor();
+        } else {
+            exitIntroEditMode();
+        }
+
+        return true;
+    }
+
     async function updateProfile(patch) {
         try {
             const res = await fetch(`${API_BASE}/api/update-profile`, {
@@ -1314,6 +1618,8 @@ export function initWhoami() {
 
     introPanePreviewEl?.addEventListener("scroll", syncEditorFromPreview, { passive: true });
     bindToolbar();
+    bindToolbarGroupHover();
+    initToolbarResponsiveLayout();
     bindSplitDrag();
     setViewMode("split");
 
@@ -1334,13 +1640,11 @@ export function initWhoami() {
     });
 
     introCancelBtn?.addEventListener("click", exitIntroEditMode);
+    introApplyBtn?.addEventListener("click", async () => {
+        await saveIntro(true);
+    });
     introSaveBtn?.addEventListener("click", async () => {
-        const nextIntro = getIntroEditorValue();
-        const updated = await updateProfile({ intro: nextIntro });
-        if (!updated) return;
-        currentIntro = updated.intro ?? nextIntro;
-        renderMarkdown(introRenderEl, currentIntro, introRenderer);
-        exitIntroEditMode();
+        await saveIntro(false);
     });
 
     goLoginBtn?.addEventListener("click", () => {
