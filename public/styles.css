@@ -181,6 +181,82 @@ a {
 #markdown-render em {
     font-style: italic;
 }
+#intro-render,
+#intro-preview {
+    line-height: 1.6;
+}
+#intro-render h1,
+#intro-preview h1 {
+    font-size: 2em;
+    margin: 0.4em 0;
+}
+#intro-render h2,
+#intro-preview h2 {
+    font-size: 1.5em;
+    margin: 0.4em 0;
+}
+#intro-render h3,
+#intro-preview h3 {
+    font-size: 1.2em;
+    margin: 0.4em 0;
+}
+#intro-render p,
+#intro-preview p {
+    margin: 0.5em 0;
+}
+#intro-render ul,
+#intro-preview ul {
+    list-style: disc;
+    margin: 0.6em 0 0.6em 1.5em;
+    padding-left: 1.2em;
+}
+#intro-render ol,
+#intro-preview ol {
+    list-style: decimal;
+    margin: 0.6em 0 0.6em 1.5em;
+    padding-left: 1.2em;
+}
+#intro-render li,
+#intro-preview li {
+    margin: 0.25em 0;
+}
+#intro-render blockquote,
+#intro-preview blockquote {
+    margin: 0.8em 0;
+    padding: 0.2em 0.8em;
+    border-left: 4px solid var(--br-color);
+    opacity: 0.9;
+}
+#intro-render code,
+#intro-preview code {
+    font-family: ui-monospace, Menlo, Monaco, Consolas, monospace;
+    background: rgba(0, 0, 0, 0.08);
+    border-radius: 4px;
+    padding: 0.05em 0.35em;
+}
+#intro-render pre,
+#intro-preview pre {
+    overflow-x: auto;
+    padding: 0.6em 0.8em;
+    border: 1px solid var(--glass-border);
+    border-radius: 8px;
+    background: rgba(0, 0, 0, 0.08);
+}
+#intro-render pre code,
+#intro-preview pre code {
+    background: transparent;
+    padding: 0;
+}
+#intro-render hr,
+#intro-preview hr {
+    border: none;
+    border-top: 1px solid var(--br-color);
+    margin: 0.8em 0;
+}
+#intro-render input[type="checkbox"],
+#intro-preview input[type="checkbox"] {
+    margin-right: 0.4em;
+}
 #categories {
     display: grid;
     grid-template-columns: 1fr;

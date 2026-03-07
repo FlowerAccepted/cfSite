@@ -1,12 +1,95 @@
 ---
 import BaseLayout from "../layouts/BaseLayout.astro";
+// @ts-ignore
+import ErrorMarkSign from "@/components/signs/ErrorMarkSign.astro";
+const API_BASE = import.meta.env.PUBLIC_API_BASE;
 ---
 
 <BaseLayout title="用户中心 - FAc's Site">
-    <section class="title-section glass-panel">
-        <h1>用户中心</h1>
+    <section id="profile-card" class="glass-panel hidden">
+        <div class="flex items-center gap-4">
+            <img id="avatar" class="h-20 w-20 rounded-full" />
+            <div>
+                <h2 id="nickname" class="text-xl font-bold"></h2>
+                <p id="username" class="text-sm opacity-70"></p>
+            </div>
+        </div>
+
+        <div class="mt-4">
+            <p class="text-sm opacity-70">个签</p>
+            <p id="bio-display" class="mt-1 cursor-pointer"></p>
+            <div id="bio-editor" class="mt-2 hidden items-center gap-2">
+                <input
+                    id="bio-input"
+                    class="glass-input"
+                    style="width: 100%;"
+                    placeholder="输入个签"
+                />
+                <button class="glass-btn" id="bio-cancel">取消</button>
+                <button class="glass-btn" id="bio-save">确定</button>
+            </div>
+        </div>
+
+        <button class="glass-btn mt-4" id="intro-edit-btn">编辑个人简介</button>
+
+        <section id="intro-view" class="mt-4">
+            <p class="text-sm opacity-70">个人简介</p>
+            <div id="intro-render" class="mt-2 leading-relaxed"></div>
+        </section>
+
+        <section id="intro-editor" class="mt-4 hidden">
+            <p class="text-sm opacity-70">编辑个人简介</p>
+            <div class="mt-2 grid grid-cols-1 gap-3 md:grid-cols-2">
+                <textarea
+                    id="intro-input"
+                    class="glass-input"
+                    style="width: 100%; height: 18rem; padding: 12px; font-family: ui-monospace, Menlo, Monaco, Consolas, monospace;"
+                    placeholder="支持 Markdown"
+                ></textarea>
+                <div class="glass-panel h-72 overflow-y-auto">
+                    <div id="intro-preview" class="leading-relaxed"></div>
+                </div>
+            </div>
+            <div class="mt-3 flex items-center justify-end gap-2">
+                <button class="glass-btn" id="intro-cancel">取消</button>
+                <button class="glass-btn" id="intro-save">确定</button>
+            </div>
+        </section>
     </section>
-    <section class="glass-panel">
-        <p>这里是用户中心页面，包括部分用户设置，更多功能正在开发中，敬请期待！</p>
-    </section>
+
+    <div
+        id="un-auth"
+        class="fixed inset-0 z-[2000] hidden items-center justify-center bg-black/50"
+    >
+        <div
+            class="glass-panel h-2/5 w-2/5 flex flex-col items-center justify-center gap-10 text-center"
+        >
+            <ErrorMarkSign size={128} />
+            <h1>请先登录</h1>
+            <button class="glass-btn justify-center" id="go-login">去登录</button>
+        </div>
+    </div>
+
+    <script define:vars={{ API_BASE }}>
+        window.__WHOAMI_API_BASE__ = API_BASE;
+    </script>
+
+    <script is:inline>
+        window.__showWhoamiUnauth = () => {
+            const profile = document.getElementById("profile-card");
+            const unauth = document.getElementById("un-auth");
+            profile?.classList.add("hidden");
+            unauth?.classList.remove("hidden");
+            unauth?.classList.add("flex");
+        };
+    </script>
+
+    <script type="module">
+        import("/scripts/whoami.js")
+            .then(({ initWhoami }) => initWhoami())
+            .catch((err) => {
+                console.error("whoami module load failed:", err);
+                window.__showWhoamiUnauth?.();
+            });
+    </script>
 </BaseLayout>

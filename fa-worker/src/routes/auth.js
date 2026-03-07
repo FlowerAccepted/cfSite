@@ -161,7 +161,7 @@ export async function handleUpdateProfile(request, env) {
 		return new Response('Invalid JSON', { status: 400 });
 	}
 
-	const { nickname, avatar, bio, links } = body;
+	const { nickname, avatar, bio, intro, links } = body;
 
 	const row = await env.DB.prepare(`SELECT profile FROM users WHERE uid=?`).bind(uid).first();
 
@@ -177,6 +177,7 @@ export async function handleUpdateProfile(request, env) {
 	if (nickname !== undefined) profile.nickname = nickname;
 	if (avatar !== undefined) profile.avatar = avatar;
 	if (bio !== undefined) profile.bio = bio;
+	if (intro !== undefined) profile.intro = intro;
 	if (links !== undefined) profile.links = links;
 
 	await env.DB.prepare(`UPDATE users SET profile=json(?) WHERE uid=?`).bind(JSON.stringify(profile), uid).run();
