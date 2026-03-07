@@ -1,5 +1,5 @@
 ---
-const { title = "FAc's Site" } = Astro.props;
+const { title = "FAc's Site", mainClass = "" } = Astro.props;
 const user = Astro.locals.user;
 import "../styles/global.css";
 import SidebarLink from "@/components/SidebarLink.astro";
@@ -84,7 +84,7 @@ const API_BASE = import.meta.env.PUBLIC_API_BASE;
             </SidebarLink>
         </aside>
 
-        <main class="content">
+        <main class={`content ${mainClass}`.trim()}>
             <slot />
         </main>
         <button id="back-to-top" class="back-to-top">

@@ -2,10 +2,11 @@
 import BaseLayout from "../layouts/BaseLayout.astro";
 // @ts-ignore
 import ErrorMarkSign from "@/components/signs/ErrorMarkSign.astro";
+import MarkdownIDE from "@/components/MarkdownIDE.astro";
 const API_BASE = import.meta.env.PUBLIC_API_BASE;
 ---
 
-<BaseLayout title="用户中心 - FAc's Site">
+<BaseLayout title="用户中心 - FAc's Site" mainClass="whoami-main">
     <section id="profile-card" class="glass-panel hidden">
         <div class="flex items-center gap-4">
             <img id="avatar" class="h-20 w-20 rounded-full" />
@@ -16,7 +17,6 @@ const API_BASE = import.meta.env.PUBLIC_API_BASE;
         </div>
 
         <div class="mt-4">
-            <p class="text-sm opacity-70">个签</p>
             <p id="bio-display" class="mt-1 cursor-pointer"></p>
             <div id="bio-editor" class="mt-2 hidden items-center gap-2">
                 <input
@@ -32,23 +32,15 @@ const API_BASE = import.meta.env.PUBLIC_API_BASE;
 
         <button class="glass-btn mt-4" id="intro-edit-btn">编辑个人简介</button>
 
-        <section id="intro-view" class="mt-4">
-            <p class="text-sm opacity-70">个人简介</p>
-            <div id="intro-render" class="mt-2 leading-relaxed"></div>
+        <p id="intro-label" class="mt-4 text-sm opacity-70">个人简介</p>
+        <section id="intro-view" class="mt-2">
+            <div id="intro-render" class="leading-relaxed"></div>
         </section>
 
         <section id="intro-editor" class="mt-4 hidden">
             <p class="text-sm opacity-70">编辑个人简介</p>
-            <div class="mt-2 grid grid-cols-1 gap-3 md:grid-cols-2">
-                <textarea
-                    id="intro-input"
-                    class="glass-input"
-                    style="width: 100%; height: 18rem; padding: 12px; font-family: ui-monospace, Menlo, Monaco, Consolas, monospace;"
-                    placeholder="支持 Markdown"
-                ></textarea>
-                <div class="glass-panel h-72 overflow-y-auto">
-                    <div id="intro-preview" class="leading-relaxed"></div>
-                </div>
+            <div class="mt-2">
+                <MarkdownIDE prefix="intro" fileTitle="intro.md" editorHeightClass="h-[28rem]" />
             </div>
             <div class="mt-3 flex items-center justify-end gap-2">
                 <button class="glass-btn" id="intro-cancel">取消</button>

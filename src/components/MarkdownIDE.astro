@@ -1,0 +1,88 @@
+---
+const {
+    prefix = "md",
+    fileTitle = "document.md",
+    editorHeightClass = "h-96",
+    editorPlaceholder = "支持 Markdown",
+} = Astro.props;
+---
+
+<div class="md-ide-shell glass-panel" data-md-prefix={prefix}>
+    <div class="md-ide-topbar">
+        <span class="md-ide-dot md-ide-dot-red"></span>
+        <span class="md-ide-dot md-ide-dot-yellow"></span>
+        <span class="md-ide-dot md-ide-dot-green"></span>
+        <span class="md-ide-title">{fileTitle}</span>
+    </div>
+
+    <div id={`${prefix}-toolbar`} class="md-ide-toolbar">
+        <div class="md-ide-toolbar-left">
+            <button type="button" class="md-tool-btn" data-snippet="# |" title="一级标题">#</button>
+            <button type="button" class="md-tool-btn" data-snippet="## |" title="二级标题">##</button>
+            <button type="button" class="md-tool-btn" data-snippet="**{sel}|**" title="加粗">B</button>
+            <button type="button" class="md-tool-btn" data-snippet="*{sel}|*" title="斜体">I</button>
+            <button type="button" class="md-tool-btn" data-snippet="~~{sel}|~~" title="删除线">S</button>
+            <button type="button" class="md-tool-btn" data-snippet="`{sel}|`" title="行内代码">`</button>
+            <button type="button" class="md-tool-btn" data-snippet="[{sel}](|)" title="链接">Link</button>
+            <button type="button" class="md-tool-btn" data-snippet="![alt](|)" title="图片">Img</button>
+            <button type="button" class="md-tool-btn" data-snippet="> |" title="引用">Quote</button>
+            <button type="button" class="md-tool-btn" data-snippet="- |" title="无序列表">UL</button>
+            <button type="button" class="md-tool-btn" data-snippet="1. |" title="有序列表">OL</button>
+            <button type="button" class="md-tool-btn" data-snippet="- [ ] |" title="任务列表">Task</button>
+            <button
+                type="button"
+                class="md-tool-btn"
+                data-snippet="```cpp\n|\n```"
+                title="代码块"
+            >
+                Code
+            </button>
+            <button
+                type="button"
+                class="md-tool-btn"
+                data-snippet="| A | B |\n| - | - |\n| ^ | < |\n"
+                title="表格"
+            >
+                Table
+            </button>
+            <button
+                type="button"
+                class="md-tool-btn"
+                data-snippet=":::info[提示]{open}\n|\n:::\n"
+                title="信息块"
+            >
+                Info
+            </button>
+            <button
+                type="button"
+                class="md-tool-btn"
+                data-snippet=":::align{center}\n|\n:::\n"
+                title="居中块"
+            >
+                Center
+            </button>
+        </div>
+        <div class="md-ide-toolbar-right">
+            <button type="button" class="md-tool-btn" data-view="editor" title="仅编辑">E</button>
+            <button type="button" class="md-tool-btn" data-view="split" title="分屏">S</button>
+            <button type="button" class="md-tool-btn" data-view="preview" title="仅预览">P</button>
+        </div>
+    </div>
+
+    <div id={`${prefix}-split`} class={`md-ide-split ${editorHeightClass}`}>
+        <div id={`${prefix}-pane-editor`} class="md-ide-pane md-ide-pane-editor">
+            <div id={`${prefix}-ide`} class="md-ide-editor"></div>
+            <textarea
+                id={`${prefix}-input`}
+                class="glass-input hidden md-ide-fallback"
+                placeholder={editorPlaceholder}
+            ></textarea>
+        </div>
+        <div id={`${prefix}-divider`} class="md-ide-divider" role="separator"></div>
+        <div id={`${prefix}-pane-preview`} class="md-ide-pane md-ide-pane-preview">
+            <div id={`${prefix}-preview`} class="md-ide-preview leading-relaxed"></div>
+        </div>
+    </div>
+
+    <div id={`${prefix}-ide-status`} class="md-ide-status">行 1, 列 1</div>
+</div>
