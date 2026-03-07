@@ -5,16 +5,23 @@ const DEFAULT_INTRO = "这个人很懒，连个人简介都没写。";
 const DEFAULT_AVATAR =
     "https://cdn.jsdmirror.com/gh/FlowerAccepted/gh-src-for-cfsite-dns@main/defult_avatar.png";
 const ACE_SCRIPT_URL =
-    "https://cdn.jsdmirror.com/npm/ace-builds@1.43.3/src-min-noconflict/ace.js";
+    "https://cdn.jsdelivr.net/npm/ace-builds@1.43.3/src-min-noconflict/ace.js";
+const ACE_MARKDOWN_MODE_URL =
+    "https://cdn.jsdelivr.net/npm/ace-builds@1.43.3/src-min-noconflict/mode-markdown.js";
+const ACE_TEXT_MODE_URL =
+    "https://cdn.jsdelivr.net/npm/ace-builds@1.43.3/src-min-noconflict/mode-text.js";
+const ACE_CHROME_THEME_URL =
+    "https://cdn.jsdelivr.net/npm/ace-builds@1.43.3/src-min-noconflict/theme-chrome.js";
 const HIGHLIGHT_JS_URL =
-    "https://cdn.jsdmirror.com/npm/highlight.js@11.11.1/lib/common.min.js";
+    "https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.11.1/build/highlight.min.js";
 const HIGHLIGHT_CSS_URL =
-    "https://cdn.jsdmirror.com/npm/highlight.js@11.11.1/styles/atom-one-light.min.css";
+    "https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.11.1/build/styles/atom-one-light.min.css";
 const CUTE_TABLE_MARKER = "<!--__LUOGU_CUTE_TABLE__-->";
 const HIDDEN_LEAF_RE = /::hidden\[([\s\S]*?)\]/g;
 const ANTI_AI_LEAF_RE = /::anti-ai\[([\s\S]*?)\]/g;
 
 let aceLoadPromise = null;
+let aceDepsLoadPromise = null;
 let highlightLoadPromise = null;
 let aceCustomModeReady = false;
 
@@ -96,6 +103,27 @@ function ensureAceLoaded() {
     return aceLoadPromise;
 }
 
+function ensureAceDepsLoaded() {
+    if (!window.ace) return Promise.resolve();
+    const ace = window.ace;
+    try {
+        ace.require("ace/mode/markdown");
+        ace.require("ace/theme/chrome");
+        return Promise.resolve();
+    } catch {
+        // Continue to network loading.
+    }
+
+    if (!aceDepsLoadPromise) {
+        aceDepsLoadPromise = Promise.all([
+            loadScript(ACE_TEXT_MODE_URL),
+            loadScript(ACE_MARKDOWN_MODE_URL),
+            loadScript(ACE_CHROME_THEME_URL),
+        ]).then(() => undefined);
+    }
+    return aceDepsLoadPromise;
+}
+
 function ensureAceCustomMode() {
     const ace = window.ace;
     if (!ace || !ace.define || !ace.require) return false;
@@ -112,33 +140,45 @@ function ensureAceCustomMode() {
     try {
         ace.define(
             "ace/mode/cfsite_markdown_highlight_rules",
-            ["require", "exports", "module", "ace/lib/oop", "ace/mode/markdown_highlight_rules"],
+            ["require", "exports", "module", "ace/lib/oop", "ace/mode/text_highlight_rules"],
             (require, exports) => {
                 const oop = require("ace/lib/oop");
-                const MarkdownHighlightRules =
-                    require("ace/mode/markdown_highlight_rules").MarkdownHighlightRules;
+                const TextHighlightRules = require("ace/mode/text_highlight_rules").TextHighlightRules;
 
                 const CfSiteMarkdownHighlightRules = function() {
-                    MarkdownHighlightRules.call(this);
-                    const customRules = [
-                        { token: "invalid", regex: /::anti-ai\[[^\]]*\]/ },
-                        { token: "comment", regex: /::hidden\[[^\]]*\]/ },
-                        { token: "constant.language", regex: /^::cute-table\{tuack\}\s*$/ },
-                        {
-                            token: "support.function",
-                            regex: /^:::(?:info|success|warning|error)(?:\[[^\]]*\])?(?:\{open\})?\s*$/,
-                        },
-                        {
-                            token: "support.function",
-                            regex: /^:::(?:align\{(?:center|right)\}|epigraph(?:\[[^\]]*\])?)\s*$/,
-                        },
-                        { token: "support.function", regex: /^:::\s*$/ },
-                    ];
-                    this.$rules.start = customRules.concat(this.$rules.start);
+                    this.$rules = {
+                        start: [
+                            { token: "markup.heading", regex: /^\s{0,3}#{1,6}\s+.*$/ },
+                            { token: "string.blockquote", regex: /^\s{0,3}>\s+.*$/ },
+                            { token: "markup.list", regex: /^\s{0,3}-\s+\[[ xX]\]\s+.*$/ },
+                            { token: "markup.list", regex: /^\s{0,3}(?:[-+*]|\d+\.)\s+.*$/ },
+                            { token: "support.constant", regex: /^\s{0,3}(?:-{3,}|\*{3,}|_{3,})\s*$/ },
+                            { token: "comment", regex: /^\s*\|.*\|\s*$/ },
+                            { token: "invalid", regex: /::anti-ai\[[^\]]*\]/ },
+                            { token: "comment", regex: /::hidden\[[^\]]*\]/ },
+                            { token: "constant.language", regex: /^::cute-table\{tuack\}\s*$/ },
+                            {
+                                token: "support.function",
+                                regex: /^:::(?:info|success|warning|error)(?:\[[^\]]*\])?(?:\{open\})?\s*$/,
+                            },
+                            {
+                                token: "support.function",
+                                regex: /^:::(?:align\{(?:center|right)\}|epigraph(?:\[[^\]]*\])?)\s*$/,
+                            },
+                            { token: "support.function", regex: /^:::\s*$/ },
+                            { token: "markup.raw", regex: /`[^`\n]+`/ },
+                            { token: "markup.bold", regex: /\*\*(?=\S)([\s\S]*?\S)\*\*/ },
+                            { token: "markup.italic", regex: /\*(?=\S)([\s\S]*?\S)\*/ },
+                            { token: "markup.underline", regex: /!\[(?:[^\]\\]|\\.)*\]\((?:[^)\\]|\\.)+\)/ },
+                            { token: "markup.underline", regex: /\[(?:[^\]\\]|\\.)+\]\((?:[^)\\]|\\.)+\)/ },
+                            { token: "text", regex: /[^`*_[!>\-|:#\n]+/ },
+                            { token: "text", regex: /./ },
+                        ],
+                    };
                     this.normalizeRules();
                 };
 
-                oop.inherits(CfSiteMarkdownHighlightRules, MarkdownHighlightRules);
+                oop.inherits(CfSiteMarkdownHighlightRules, TextHighlightRules);
                 exports.CfSiteMarkdownHighlightRules = CfSiteMarkdownHighlightRules;
             },
         );
@@ -150,22 +190,22 @@ function ensureAceCustomMode() {
                 "exports",
                 "module",
                 "ace/lib/oop",
-                "ace/mode/markdown",
+                "ace/mode/text",
                 "ace/mode/cfsite_markdown_highlight_rules",
             ],
             (require, exports) => {
                 const oop = require("ace/lib/oop");
-                const MarkdownMode = require("ace/mode/markdown").Mode;
+                const TextMode = require("ace/mode/text").Mode;
                 const CfSiteMarkdownHighlightRules =
                     require("ace/mode/cfsite_markdown_highlight_rules").CfSiteMarkdownHighlightRules;
 
                 const Mode = function() {
-                    MarkdownMode.call(this);
+                    TextMode.call(this);
                     this.HighlightRules = CfSiteMarkdownHighlightRules;
                     this.$id = "ace/mode/cfsite_markdown";
                 };
 
-                oop.inherits(Mode, MarkdownMode);
+                oop.inherits(Mode, TextMode);
                 exports.Mode = Mode;
             },
         );
@@ -1453,15 +1493,20 @@ export function initWhoami() {
 
         try {
             await ensureAceLoaded();
+            await ensureAceDepsLoaded();
             const ace = window.ace;
             if (!ace) throw new Error("ace not found on window");
 
             introEditor = ace.edit("intro-ide");
             introEditor.setTheme("ace/theme/chrome");
             const useCustomMode = ensureAceCustomMode();
-            introEditor.session.setMode(
-                useCustomMode ? "ace/mode/cfsite_markdown" : "ace/mode/markdown",
-            );
+            const targetMode = useCustomMode ? "ace/mode/cfsite_markdown" : "ace/mode/markdown";
+            introEditor.session.setMode(targetMode);
+            const modeId = introEditor.session.$mode?.$id || "";
+            if (!modeId.includes("markdown")) {
+                introEditor.session.setMode("ace/mode/markdown");
+            }
+            console.info("intro editor mode:", introEditor.session.$mode?.$id);
             introEditor.session.setUseWrapMode(true);
             introEditor.setShowPrintMargin(false);
             introEditor.setOptions({

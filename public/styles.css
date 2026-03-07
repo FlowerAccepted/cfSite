@@ -970,6 +970,72 @@ body.md-resizing {
     color: #2d78b1 !important;
     font-weight: 600;
 }
+.md-ide-shell .ace_markup.ace_heading {
+    color: #2f6fb3 !important;
+    font-weight: 700;
+}
+.md-ide-shell .ace_heading {
+    color: #2f6fb3 !important;
+    font-weight: 700;
+}
+.md-ide-shell .ace_markup.ace_list {
+    color: #607d68 !important;
+    font-weight: 600;
+}
+.md-ide-shell .ace_list {
+    color: #607d68 !important;
+    font-weight: 600;
+}
+.md-ide-shell .ace_string.ace_blockquote {
+    color: #6b8394 !important;
+    font-style: italic;
+}
+.md-ide-shell .ace_blockquote {
+    color: #6b8394 !important;
+    font-style: italic;
+}
+.md-ide-shell .ace_markup.ace_underline,
+.md-ide-shell .ace_markup.ace_underline.ace_link {
+    color: #2f84bf !important;
+}
+.md-ide-shell .ace_underline,
+.md-ide-shell .ace_link,
+.md-ide-shell .ace_url {
+    color: #2f84bf !important;
+}
+.md-ide-shell .ace_markup.ace_bold {
+    color: #2f3f49 !important;
+    font-weight: 700;
+}
+.md-ide-shell .ace_bold {
+    color: #2f3f49 !important;
+    font-weight: 700;
+}
+.md-ide-shell .ace_markup.ace_italic {
+    color: #3d5668 !important;
+    font-style: italic;
+}
+.md-ide-shell .ace_italic {
+    color: #3d5668 !important;
+    font-style: italic;
+}
+.md-ide-shell .ace_markup.ace_raw,
+.md-ide-shell .ace_raw {
+    color: #875f2f !important;
+}
+.md-ide-shell .ace_support.ace_constant {
+    color: #875f2f !important;
+}
+.md-ide-shell .ace_constant.ace_numeric {
+    color: #9e6a2e !important;
+}
+.md-ide-shell .ace_string {
+    color: #2a8a5f !important;
+}
+.md-ide-shell .ace_comment {
+    color: #8e99a0 !important;
+    font-style: italic;
+}
 .md-ide-shell .ace_invalid {
     color: #c15d5d !important;
     text-decoration: underline wavy #c15d5d;
