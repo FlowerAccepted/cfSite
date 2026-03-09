@@ -6,4 +6,6 @@
 
 <p style="color:#FFC116">（本站目前仍在大力建设中，敬请期待更多内容喵~）</p>
 
+<h2 style="color:#FFC116">注意表格 markdown 渲染存在问题，正在修复</h2>
+
 [本站开源仓库](https://github.com/FlowerAccepted/cfSite)，欢迎贡献！

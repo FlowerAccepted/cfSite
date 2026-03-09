@@ -177,7 +177,7 @@ const {
                     <button
                         type="button"
                         class="md-tool-btn md-icon-btn"
-                        data-snippet="[{sel}](|)"
+                        data-dialog="link"
                         title="链接"
                     >
                         <svg viewBox="0 0 24 24" aria-hidden="true">
@@ -188,7 +188,7 @@ const {
                     <button
                         type="button"
                         class="md-tool-btn md-icon-btn"
-                        data-snippet="![alt](|)"
+                        data-dialog="image"
                         title="图片"
                     >
                         <svg viewBox="0 0 24 24" aria-hidden="true">
@@ -234,7 +234,7 @@ const {
                     <button
                         type="button"
                         class="md-tool-btn md-icon-btn"
-                        data-snippet="| A | B |\n| - | - |\n| ^ | < |\n"
+                        data-dialog="table"
                         title="表格"
                     >
                         <svg viewBox="0 0 24 24" aria-hidden="true">
@@ -246,7 +246,8 @@ const {
                     <button
                         type="button"
                         class="md-tool-btn md-icon-btn"
-                        data-snippet="::cute-table{tuack}\n| A | B |\n| - | - |\n| 1 | 2 |\n"
+                        data-dialog="table"
+                        data-table-style="tuack"
                         title="可爱表格"
                     >
                         <svg viewBox="0 0 24 24" aria-hidden="true">
@@ -290,7 +291,8 @@ const {
                     <button
                         type="button"
                         class="md-tool-btn md-icon-btn"
-                        data-snippet=":::info[提示]{open}\n|\n:::\n"
+                        data-dialog="callout"
+                        data-callout-kind="info"
                         title="信息块"
                     >
                         <svg viewBox="0 0 24 24" aria-hidden="true">
@@ -302,7 +304,8 @@ const {
                     <button
                         type="button"
                         class="md-tool-btn md-icon-btn"
-                        data-snippet=":::success[成功]{open}\n|\n:::\n"
+                        data-dialog="callout"
+                        data-callout-kind="success"
                         title="成功块"
                     >
                         <svg viewBox="0 0 24 24" aria-hidden="true">
@@ -314,7 +317,8 @@ const {
                     <button
                         type="button"
                         class="md-tool-btn md-icon-btn"
-                        data-snippet=":::warning[警告]{open}\n|\n:::\n"
+                        data-dialog="callout"
+                        data-callout-kind="warning"
                         title="警告块"
                     >
                         <svg viewBox="0 0 24 24" aria-hidden="true">
@@ -325,7 +329,8 @@ const {
                     <button
                         type="button"
                         class="md-tool-btn md-icon-btn"
-                        data-snippet=":::error[错误]{open}\n|\n:::\n"
+                        data-dialog="callout"
+                        data-callout-kind="error"
                         title="错误块"
                     >
                         <svg viewBox="0 0 24 24" aria-hidden="true">
@@ -356,6 +361,30 @@ const {
                             <path d="M8 8l8 8"></path>
                         </svg>
                         <span class="md-sr-only">隐藏叶子</span>
+                    </button>
+                    <button
+                        type="button"
+                        class="md-tool-btn md-icon-btn"
+                        data-snippet="$|$"
+                        title="行内公式"
+                    >
+                        <svg viewBox="0 0 24 24" aria-hidden="true">
+                            <path d="M3 6h18M6 12h12M3 18h18"></path>
+                            <path d="M10 6l4 12M14 6l-4 12"></path>
+                        </svg>
+                        <span class="md-sr-only">行内公式</span>
+                    </button>
+                    <button
+                        type="button"
+                        class="md-tool-btn md-icon-btn"
+                        data-snippet="$$\n|\n$$"
+                        title="块级公式"
+                    >
+                        <svg viewBox="0 0 24 24" aria-hidden="true">
+                            <rect x="4" y="4" width="16" height="16" rx="2"></rect>
+                            <path d="M8 9h8M8 15h8"></path>
+                        </svg>
+                        <span class="md-sr-only">块级公式</span>
                     </button>
                 </div>
             </div>
@@ -394,6 +423,113 @@ const {
                 </svg>
                 <span class="md-sr-only">仅预览</span>
             </button>
+        </div>
+    </div>
+
+    <div id={`${prefix}-tool-dialog`} class="md-tool-dialog hidden" aria-hidden="true">
+        <div class="md-tool-dialog-backdrop" data-dialog-close></div>
+        <div class="md-tool-dialog-card glass-panel" role="dialog" aria-modal="true">
+            <h3 id={`${prefix}-tool-dialog-title`} class="md-tool-dialog-title">插入选项</h3>
+
+            <section
+                id={`${prefix}-dialog-link`}
+                class="md-tool-dialog-panel hidden"
+                data-dialog-panel="link"
+            >
+                <label class="md-tool-field">
+                    <span>显示文本</span>
+                    <input id={`${prefix}-dialog-link-text`} class="glass-input" />
+                </label>
+                <label class="md-tool-field">
+                    <span>链接地址</span>
+                    <input id={`${prefix}-dialog-link-url`} class="glass-input" placeholder="https://..." />
+                </label>
+                <label class="md-tool-field">
+                    <span>标题（可选）</span>
+                    <input id={`${prefix}-dialog-link-title`} class="glass-input" />
+                </label>
+            </section>
+
+            <section
+                id={`${prefix}-dialog-image`}
+                class="md-tool-dialog-panel hidden"
+                data-dialog-panel="image"
+            >
+                <label class="md-tool-field">
+                    <span>图片说明 alt</span>
+                    <input id={`${prefix}-dialog-image-alt`} class="glass-input" />
+                </label>
+                <label class="md-tool-field">
+                    <span>图片地址</span>
+                    <input id={`${prefix}-dialog-image-url`} class="glass-input" placeholder="https://..." />
+                </label>
+                <label class="md-tool-field">
+                    <span>标题（可选）</span>
+                    <input id={`${prefix}-dialog-image-title`} class="glass-input" />
+                </label>
+            </section>
+
+            <section
+                id={`${prefix}-dialog-callout`}
+                class="md-tool-dialog-panel hidden"
+                data-dialog-panel="callout"
+            >
+                <label class="md-tool-field">
+                    <span>类型</span>
+                    <select id={`${prefix}-dialog-callout-kind`} class="glass-input">
+                        <option value="info">信息</option>
+                        <option value="success">成功</option>
+                        <option value="warning">警告</option>
+                        <option value="error">错误</option>
+                    </select>
+                </label>
+                <label class="md-tool-field">
+                    <span>标题</span>
+                    <input id={`${prefix}-dialog-callout-title`} class="glass-input" value="提示" />
+                </label>
+                <label class="md-tool-field md-tool-inline-field">
+                    <input id={`${prefix}-dialog-callout-open`} type="checkbox" checked />
+                    <span>默认展开</span>
+                </label>
+            </section>
+
+            <section
+                id={`${prefix}-dialog-table`}
+                class="md-tool-dialog-panel hidden"
+                data-dialog-panel="table"
+            >
+                <label class="md-tool-field">
+                    <span>表格风格</span>
+                    <select id={`${prefix}-dialog-table-style`} class="glass-input">
+                        <option value="plain">普通表格</option>
+                        <option value="tuack">cute-table tuack</option>
+                        <option value="three">cute-table 三线表</option>
+                    </select>
+                </label>
+                <label class="md-tool-field">
+                    <span>列数</span>
+                    <input id={`${prefix}-dialog-table-cols`} type="number" min="1" max="12" value="4" class="glass-input" />
+                </label>
+                <label class="md-tool-field">
+                    <span>数据行数</span>
+                    <input id={`${prefix}-dialog-table-rows`} type="number" min="1" max="50" value="6" class="glass-input" />
+                </label>
+                <label class="md-tool-field">
+                    <span>表头行数（可为 0）</span>
+                    <input id={`${prefix}-dialog-table-headrows`} type="number" min="0" max="6" value="1" class="glass-input" />
+                </label>
+                <label class="md-tool-field md-tool-inline-field">
+                    <input id={`${prefix}-dialog-table-merge`} type="checkbox" />
+                    <span>插入 <code>^</code> / <code>&lt;</code> 合并示例</span>
+                </label>
+            </section>
+
+            <div class="md-tool-dialog-actions">
+                <button type="button" class="glass-btn" id={`${prefix}-dialog-cancel`} data-dialog-close>
+                    取消
+                </button>
+                <button type="button" class="glass-btn" id={`${prefix}-dialog-apply`}>插入</button>
+            </div>
         </div>
     </div>
 

@@ -327,6 +327,63 @@ main.whoami-main {
 #intro-preview .md-cute-table-tuack thead {
     background: linear-gradient(90deg, rgba(112, 197, 233, 0.18), rgba(112, 197, 233, 0.08));
 }
+#intro-render .md-cute-table-three,
+#intro-preview .md-cute-table-three {
+    border-collapse: collapse;
+    border-radius: 0;
+    box-shadow: none;
+    background: transparent;
+    border-top: 6px solid #474a4f;
+    border-bottom: 6px solid #474a4f;
+}
+#intro-render .md-cute-table-three thead,
+#intro-preview .md-cute-table-three thead {
+    background: transparent;
+}
+#intro-render .md-cute-table-three th,
+#intro-render .md-cute-table-three td,
+#intro-preview .md-cute-table-three th,
+#intro-preview .md-cute-table-three td {
+    border-left: 1px solid #5c5f64;
+    border-right: 1px solid #5c5f64;
+    border-top: none;
+    border-bottom: 1px solid #5c5f64;
+    background: transparent;
+}
+#intro-render .md-cute-table-three th:first-child,
+#intro-render .md-cute-table-three td:first-child,
+#intro-preview .md-cute-table-three th:first-child,
+#intro-preview .md-cute-table-three td:first-child {
+    border-left: none;
+}
+#intro-render .md-cute-table-three th:last-child,
+#intro-render .md-cute-table-three td:last-child,
+#intro-preview .md-cute-table-three th:last-child,
+#intro-preview .md-cute-table-three td:last-child {
+    border-right: none;
+}
+#intro-render .md-cute-table-three thead tr:last-child th,
+#intro-preview .md-cute-table-three thead tr:last-child th {
+    border-bottom: 3px solid #474a4f;
+}
+#intro-render .md-cute-table-three tbody tr:last-child td,
+#intro-preview .md-cute-table-three tbody tr:last-child td {
+    border-bottom: none;
+}
+#intro-render .md-cute-table td,
+#intro-render .md-cute-table th,
+#intro-preview .md-cute-table td,
+#intro-preview .md-cute-table th {
+    vertical-align: middle;
+}
+#intro-render .katex,
+#intro-preview .katex {
+    font-size: 1.02em;
+}
+#intro-render .katex-display,
+#intro-preview .katex-display {
+    margin: 0.8em 0;
+}
 #intro-render .md-align-center,
 #intro-preview .md-align-center {
     text-align: center;
@@ -857,6 +914,60 @@ main.whoami-main.whoami-editing #intro-editor .ace_gutter {
 }
 .md-sr-only {
     display: none !important;
+}
+.md-tool-dialog {
+    position: fixed;
+    inset: 0;
+    z-index: 2300;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.18s ease;
+}
+.md-tool-dialog.is-open {
+    opacity: 1;
+    pointer-events: auto;
+}
+.md-tool-dialog-backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(24, 33, 27, 0.32);
+}
+.md-tool-dialog-card {
+    position: relative;
+    z-index: 1;
+    width: min(520px, calc(100vw - 24px));
+    padding: 14px;
+}
+.md-tool-dialog-title {
+    margin: 0 0 10px 0;
+    font-size: 1.04rem;
+    font-weight: 700;
+}
+.md-tool-dialog-panel {
+    display: grid;
+    gap: 10px;
+}
+.md-tool-dialog-panel.hidden {
+    display: none !important;
+}
+.md-tool-field {
+    display: grid;
+    gap: 6px;
+    font-size: 13px;
+}
+.md-tool-inline-field {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.md-tool-dialog-actions {
+    margin-top: 14px;
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
 }
 .whoami-toast {
     position: fixed;

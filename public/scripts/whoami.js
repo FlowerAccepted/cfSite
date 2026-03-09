@@ -16,13 +16,26 @@ const HIGHLIGHT_JS_URL =
     "https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.11.1/build/highlight.min.js";
 const HIGHLIGHT_CSS_URL =
     "https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.11.1/build/styles/atom-one-light.min.css";
-const CUTE_TABLE_MARKER = "<!--__LUOGU_CUTE_TABLE__-->";
+const KATEX_JS_URLS = [
+    "https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js",
+    "https://cdn.jsdmirror.com/npm/katex@0.16.11/dist/katex.min.js",
+];
+const KATEX_CSS_URLS = [
+    "https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css",
+    "https://cdn.jsdmirror.com/npm/katex@0.16.11/dist/katex.min.css",
+];
+const KATEX_RENDER_AUTO_URLS = [
+    "https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js",
+    "https://cdn.jsdmirror.com/npm/katex@0.16.11/dist/contrib/auto-render.min.js",
+];
 const HIDDEN_LEAF_RE = /::hidden\[([\s\S]*?)\]/g;
 const ANTI_AI_LEAF_RE = /::anti-ai\[([\s\S]*?)\]/g;
 
 let aceLoadPromise = null;
 let aceDepsLoadPromise = null;
 let highlightLoadPromise = null;
+let katexCssLoadPromise = null;
+let katexLoadPromise = null;
 let aceCustomModeReady = false;
 
 function escapeHtml(text) {
@@ -72,6 +85,19 @@ function loadScript(src) {
     });
 }
 
+async function loadScriptWithFallback(urls) {
+    let lastErr = null;
+    for (const url of urls) {
+        try {
+            await loadScript(url);
+            return;
+        } catch (err) {
+            lastErr = err;
+        }
+    }
+    throw lastErr || new Error("all script urls failed");
+}
+
 function ensureHighlightCss() {
     const exists = Array.from(document.querySelectorAll('link[rel="stylesheet"]')).find(
         (link) => link.href === HIGHLIGHT_CSS_URL,
@@ -93,6 +119,53 @@ function ensureHighlightLoaded() {
         highlightLoadPromise = loadScript(HIGHLIGHT_JS_URL);
     }
     return highlightLoadPromise;
+}
+
+function ensureKatexCss() {
+    const exists = Array.from(document.querySelectorAll('link[rel="stylesheet"]')).find((link) =>
+        KATEX_CSS_URLS.includes(link.href),
+    );
+    if (exists) return Promise.resolve();
+
+    if (!katexCssLoadPromise) {
+        katexCssLoadPromise = new Promise((resolve, reject) => {
+            let index = 0;
+            const tryNext = () => {
+                if (index >= KATEX_CSS_URLS.length) {
+                    reject(new Error("all katex css urls failed"));
+                    return;
+                }
+                const href = KATEX_CSS_URLS[index];
+                index += 1;
+
+                const link = document.createElement("link");
+                link.rel = "stylesheet";
+                link.href = href;
+                link.addEventListener("load", () => resolve(), { once: true });
+                link.addEventListener("error", () => {
+                    link.remove();
+                    tryNext();
+                }, { once: true });
+                document.head.appendChild(link);
+            };
+            tryNext();
+        });
+    }
+    return katexCssLoadPromise;
+}
+
+function ensureKatexLoaded() {
+    if (window.katex && window.renderMathInElement) {
+        return ensureKatexCss();
+    }
+
+    if (!katexLoadPromise) {
+        katexLoadPromise = ensureKatexCss()
+            .then(() => loadScriptWithFallback(KATEX_JS_URLS))
+            .then(() => loadScriptWithFallback(KATEX_RENDER_AUTO_URLS))
+            .then(() => undefined);
+    }
+    return katexLoadPromise;
 }
 
 function ensureAceLoaded() {
@@ -156,7 +229,7 @@ function ensureAceCustomMode() {
                             { token: "comment", regex: /^\s*\|.*\|\s*$/ },
                             { token: "invalid", regex: /::anti-ai\[[^\]]*\]/ },
                             { token: "comment", regex: /::hidden\[[^\]]*\]/ },
-                            { token: "constant.language", regex: /^::cute-table\{tuack\}\s*$/ },
+                            { token: "constant.language", regex: /^::cute-table\{(?:tuack|three)\}\s*$/ },
                             {
                                 token: "support.function",
                                 regex: /^:::(?:info|success|warning|error)(?:\[[^\]]*\])?(?:\{open\})?\s*$/,
@@ -167,6 +240,8 @@ function ensureAceCustomMode() {
                             },
                             { token: "support.function", regex: /^:::\s*$/ },
                             { token: "markup.raw", regex: /`[^`\n]+`/ },
+                            { token: "markup.raw", regex: /\$\$[\s\S]*?\$\$/ },
+                            { token: "markup.raw", regex: /\$(?:\\\$|[^$\n])+\$/ },
                             { token: "markup.bold", regex: /\*\*(?=\S)([\s\S]*?\S)\*\*/ },
                             { token: "markup.italic", regex: /\*(?=\S)([\s\S]*?\S)\*/ },
                             { token: "markup.underline", regex: /!\[(?:[^\]\\]|\\.)*\]\((?:[^)\\]|\\.)+\)/ },
@@ -824,14 +899,140 @@ function stripLeafContainersForRender(markdown) {
 }
 
 function preprocessLuoguMarkdown(markdown) {
-    return stripLeafContainersForRender(markdown).replace(
-        /^\s*::cute-table\{tuack\}\s*$/gm,
-        CUTE_TABLE_MARKER,
-    );
+    return stripLeafContainersForRender(markdown);
 }
 
 function normalizeMarkdownForCopy(markdown) {
     return String(markdown || "").replace(ANTI_AI_LEAF_RE, "$1");
+}
+
+function parseCuteTableStart(line) {
+    const match = String(line || "").match(/^\s*::cute-table\{([^}]+)\}\s*$/i);
+    if (!match) return null;
+    const style = String(match[1] || "").trim().toLowerCase();
+    return { style: style === "three" ? "three" : "tuack" };
+}
+
+function isPipeTableRowLine(line) {
+    const text = String(line || "").trim();
+    if (!text) return false;
+    let pipes = 0;
+    for (let i = 0; i < text.length; i += 1) {
+        if (text[i] === "|" && text[i - 1] !== "\\") pipes += 1;
+    }
+    return pipes >= 1;
+}
+
+function splitPipeTableCells(rowLine) {
+    let line = String(rowLine || "").trim();
+    if (line.startsWith("|")) line = line.slice(1);
+    if (line.endsWith("|")) line = line.slice(0, -1);
+
+    const cells = [];
+    let current = "";
+
+    for (let i = 0; i < line.length; i += 1) {
+        const ch = line[i];
+        if (ch === "\\" && line[i + 1] === "|") {
+            current += "|";
+            i += 1;
+            continue;
+        }
+        if (ch === "|") {
+            cells.push(current.trim());
+            current = "";
+            continue;
+        }
+        current += ch;
+    }
+    cells.push(current.trim());
+    return cells;
+}
+
+function isAlignmentCell(cell) {
+    return /^:?-{2,}:?$/.test(String(cell || "").trim());
+}
+
+function isAlignmentRow(cells) {
+    return cells.length > 0 && cells.every((cell) => isAlignmentCell(cell) || cell.trim() === "");
+}
+
+function parseAlignments(cells, columns) {
+    const result = Array.from({ length: columns }, () => "");
+    for (let i = 0; i < columns; i += 1) {
+        const raw = String(cells[i] || "").trim();
+        if (/^:-+:$/.test(raw)) result[i] = "center";
+        else if (/^:-+$/.test(raw)) result[i] = "left";
+        else if (/^-+:$/.test(raw)) result[i] = "right";
+    }
+    return result;
+}
+
+function renderInlineMarkdownCell(text, renderer) {
+    const content = String(text || "").trim();
+    if (!content) return "&nbsp;";
+    if (content === "^" || content === "<") return escapeHtml(content);
+    return marked.parseInline(content, {
+        renderer,
+        gfm: true,
+        breaks: false,
+    });
+}
+
+function renderCuteTableBlock(style, rowLines, renderer) {
+    const rows = rowLines.map(splitPipeTableCells);
+    const columns = Math.max(1, ...rows.map((cells) => cells.length));
+    const normalizedRows = rows.map((cells) => {
+        const next = cells.slice();
+        while (next.length < columns) next.push("");
+        return next.slice(0, columns);
+    });
+
+    const sepIndexes = [];
+    normalizedRows.forEach((cells, idx) => {
+        if (isAlignmentRow(cells)) sepIndexes.push(idx);
+    });
+
+    let alignments = Array.from({ length: columns }, () => "");
+    let headerRows = [];
+    let bodyRows = [];
+
+    if (sepIndexes.length > 0) {
+        alignments = parseAlignments(normalizedRows[sepIndexes[0]], columns);
+        headerRows = normalizedRows.slice(0, sepIndexes[0]);
+        bodyRows = normalizedRows.slice(sepIndexes[sepIndexes.length - 1] + 1);
+    } else {
+        bodyRows = normalizedRows;
+    }
+
+    let html = `<table class="md-cute-table md-cute-table-${escapeHtml(style)}">`;
+
+    if (headerRows.length > 0) {
+        html += "<thead>";
+        for (const row of headerRows) {
+            html += "<tr>";
+            row.forEach((cell, col) => {
+                const align = alignments[col];
+                const alignAttr = align ? ` style="text-align:${align}"` : "";
+                html += `<th${alignAttr}>${renderInlineMarkdownCell(cell, renderer)}</th>`;
+            });
+            html += "</tr>";
+        }
+        html += "</thead>";
+    }
+
+    html += "<tbody>";
+    for (const row of bodyRows) {
+        html += "<tr>";
+        row.forEach((cell, col) => {
+            const align = alignments[col];
+            const alignAttr = align ? ` style="text-align:${align}"` : "";
+            html += `<td${alignAttr}>${renderInlineMarkdownCell(cell, renderer)}</td>`;
+        });
+        html += "</tr>";
+    }
+    html += "</tbody></table>";
+    return html;
 }
 
 function renderExtendedMarkdown(markdown, renderer) {
@@ -854,6 +1055,25 @@ function renderExtendedMarkdown(markdown, renderer) {
 
         let i = start;
         while (i < end) {
+            const cuteTable = parseCuteTableStart(lines[i]);
+            if (cuteTable) {
+                const tableRows = [];
+                let cursor = i + 1;
+                while (cursor < end && isPipeTableRowLine(lines[cursor])) {
+                    tableRows.push(lines[cursor]);
+                    cursor += 1;
+                }
+                if (tableRows.length > 0) {
+                    flush();
+                    out += renderCuteTableBlock(cuteTable.style, tableRows, renderer);
+                    i = cursor;
+                    continue;
+                }
+                // Swallow marker line even if malformed table follows.
+                i += 1;
+                continue;
+            }
+
             const directive = parseDirectiveStart(lines[i]);
             if (!directive) {
                 buffer.push(lines[i]);
@@ -939,19 +1159,25 @@ function applyTableMerge(root) {
 }
 
 function applyCuteTable(root) {
-    const markers = Array.from(root.childNodes).filter(
-        (node) => node.nodeType === Node.COMMENT_NODE && node.nodeValue === "__LUOGU_CUTE_TABLE__",
-    );
+    return root;
+}
 
-    for (const marker of markers) {
-        let next = marker.nextSibling;
-        while (next && next.nodeType === Node.TEXT_NODE && !next.textContent.trim()) {
-            next = next.nextSibling;
-        }
-        if (next && next.nodeType === Node.ELEMENT_NODE && next.tagName === "TABLE") {
-            next.classList.add("md-cute-table", "md-cute-table-tuack");
-        }
-        marker.remove();
+function applyMathRendering(root) {
+    if (!window.renderMathInElement) return;
+    try {
+        window.renderMathInElement(root, {
+            throwOnError: false,
+            strict: "ignore",
+            delimiters: [
+                { left: "$$", right: "$$", display: true },
+                { left: "\\[", right: "\\]", display: true },
+                { left: "\\(", right: "\\)", display: false },
+                { left: "$", right: "$", display: false },
+            ],
+            ignoredTags: ["script", "noscript", "style", "textarea", "pre", "code"],
+        });
+    } catch (err) {
+        console.warn("katex render failed:", err);
     }
 }
 
@@ -1011,6 +1237,7 @@ function finalizeMarkdownHtml(root) {
     applyCuteTable(root);
     applyTableMerge(root);
     applyCodeRendering(root);
+    applyMathRendering(root);
 }
 
 function showUnauthModal(unauthModal, profileCard) {
@@ -1078,6 +1305,25 @@ export function initWhoami() {
     const introDividerEl = document.getElementById("intro-divider");
     const introPaneEditorEl = document.getElementById("intro-pane-editor");
     const introPanePreviewEl = document.getElementById("intro-pane-preview");
+    const introToolDialogEl = document.getElementById("intro-tool-dialog");
+    const introToolDialogTitleEl = document.getElementById("intro-tool-dialog-title");
+    const introToolDialogApplyBtn = document.getElementById("intro-dialog-apply");
+    const introToolDialogCancelBtn = document.getElementById("intro-dialog-cancel");
+
+    const introDialogLinkTextEl = document.getElementById("intro-dialog-link-text");
+    const introDialogLinkUrlEl = document.getElementById("intro-dialog-link-url");
+    const introDialogLinkTitleEl = document.getElementById("intro-dialog-link-title");
+    const introDialogImageAltEl = document.getElementById("intro-dialog-image-alt");
+    const introDialogImageUrlEl = document.getElementById("intro-dialog-image-url");
+    const introDialogImageTitleEl = document.getElementById("intro-dialog-image-title");
+    const introDialogCalloutKindEl = document.getElementById("intro-dialog-callout-kind");
+    const introDialogCalloutTitleEl = document.getElementById("intro-dialog-callout-title");
+    const introDialogCalloutOpenEl = document.getElementById("intro-dialog-callout-open");
+    const introDialogTableStyleEl = document.getElementById("intro-dialog-table-style");
+    const introDialogTableColsEl = document.getElementById("intro-dialog-table-cols");
+    const introDialogTableRowsEl = document.getElementById("intro-dialog-table-rows");
+    const introDialogTableHeadRowsEl = document.getElementById("intro-dialog-table-headrows");
+    const introDialogTableMergeEl = document.getElementById("intro-dialog-table-merge");
     const mainContentEl =
         document.querySelector("main.whoami-main") || document.querySelector("main.content");
 
@@ -1093,6 +1339,8 @@ export function initWhoami() {
     let syncingFromPreview = false;
     let statusFlashLock = false;
     let toastHideTimer = null;
+    let currentDialogKind = "";
+    let introBaseline = "";
 
     function setEditingPerformanceMode(editing) {
         if (!mainContentEl) return;
@@ -1296,6 +1544,191 @@ export function initWhoami() {
         });
     }
 
+    function isIntroEditing() {
+        return Boolean(introEditorEl && !introEditorEl.classList.contains("hidden"));
+    }
+
+    function hasUnsavedIntroChanges() {
+        if (!isIntroEditing()) return false;
+        return getIntroEditorValue() !== introBaseline;
+    }
+
+    function confirmDiscardIntroChanges() {
+        if (!hasUnsavedIntroChanges()) return true;
+        return window.confirm("个人简介有未保存内容，确定退出编辑吗？");
+    }
+
+    function getCurrentSelectionText() {
+        if (introEditor) {
+            const range = introEditor.getSelectionRange();
+            return introEditor.session.getTextRange(range);
+        }
+        if (!introInputEl) return "";
+        const start = introInputEl.selectionStart || 0;
+        const end = introInputEl.selectionEnd || start;
+        return introInputEl.value.slice(start, end);
+    }
+
+    function clampInt(value, fallback, min, max) {
+        const n = Number.parseInt(String(value), 10);
+        if (!Number.isFinite(n)) return fallback;
+        return Math.max(min, Math.min(max, n));
+    }
+
+    function buildTableSnippet(style, colsInput, rowsInput, headerRowsInput, withMerge) {
+        const styleKind = style === "three" ? "three" : style === "tuack" ? "tuack" : "plain";
+        const cols = clampInt(colsInput, 4, 1, 12);
+        const rows = clampInt(rowsInput, 6, 1, 50);
+        const headerRows = clampInt(
+            headerRowsInput,
+            styleKind === "plain" ? 1 : 1,
+            styleKind === "plain" ? 1 : 0,
+            6,
+        );
+
+        const lines = [];
+        if (styleKind !== "plain") {
+            lines.push(`::cute-table{${styleKind}}`);
+        }
+
+        for (let h = 0; h < headerRows; h += 1) {
+            const row = Array.from({ length: cols }, (_, c) =>
+                h === 0 ? `列${c + 1}` : `副头${h + 1}-${c + 1}`,
+            );
+            lines.push(`| ${row.join(" | ")} |`);
+        }
+
+        const aligns = Array.from({ length: cols }, () => ":-:").join(" | ");
+        lines.push(`| ${aligns} |`);
+
+        const body = [];
+        for (let r = 0; r < rows; r += 1) {
+            body.push(Array.from({ length: cols }, (_, c) => `R${r + 1}C${c + 1}`));
+        }
+
+        if (withMerge && rows >= 3 && cols >= 3) {
+            body[1][0] = "^";
+            body[1][1] = "<";
+            body[2][2] = "^";
+        }
+
+        for (const row of body) {
+            lines.push(`| ${row.join(" | ")} |`);
+        }
+
+        return lines.join("\n") + "\n";
+    }
+
+    function closeToolDialog() {
+        if (!introToolDialogEl) return;
+        introToolDialogEl.classList.add("hidden");
+        introToolDialogEl.classList.remove("is-open");
+        introToolDialogEl.setAttribute("aria-hidden", "true");
+        currentDialogKind = "";
+        introEditor?.focus();
+    }
+
+    function openToolDialog(kind, button) {
+        if (!introToolDialogEl) return;
+        currentDialogKind = kind;
+
+        introToolDialogEl.querySelectorAll("[data-dialog-panel]").forEach((panel) => {
+            panel.classList.add("hidden");
+        });
+        const panel = introToolDialogEl.querySelector(`[data-dialog-panel="${kind}"]`);
+        if (panel) panel.classList.remove("hidden");
+
+        const selected = getCurrentSelectionText() || "text";
+        if (kind === "link") {
+            if (introToolDialogTitleEl) introToolDialogTitleEl.textContent = "插入链接";
+            if (introDialogLinkTextEl) introDialogLinkTextEl.value = selected;
+            if (introDialogLinkUrlEl) introDialogLinkUrlEl.value = "";
+            if (introDialogLinkTitleEl) introDialogLinkTitleEl.value = "";
+            introDialogLinkTextEl?.focus();
+        } else if (kind === "image") {
+            if (introToolDialogTitleEl) introToolDialogTitleEl.textContent = "插入图片";
+            if (introDialogImageAltEl) introDialogImageAltEl.value = selected === "text" ? "alt" : selected;
+            if (introDialogImageUrlEl) introDialogImageUrlEl.value = "";
+            if (introDialogImageTitleEl) introDialogImageTitleEl.value = "";
+            introDialogImageAltEl?.focus();
+        } else if (kind === "callout") {
+            if (introToolDialogTitleEl) introToolDialogTitleEl.textContent = "插入提示块";
+            const calloutKind = button?.dataset.calloutKind || "info";
+            if (introDialogCalloutKindEl) introDialogCalloutKindEl.value = calloutKind;
+            if (introDialogCalloutTitleEl) {
+                const defaultTitles = { info: "提示", success: "成功", warning: "警告", error: "错误" };
+                introDialogCalloutTitleEl.value = defaultTitles[calloutKind] || "提示";
+            }
+            if (introDialogCalloutOpenEl) introDialogCalloutOpenEl.checked = true;
+            introDialogCalloutTitleEl?.focus();
+        } else if (kind === "table") {
+            if (introToolDialogTitleEl) introToolDialogTitleEl.textContent = "插入表格";
+            if (introDialogTableStyleEl) {
+                introDialogTableStyleEl.value = button?.dataset.tableStyle || "plain";
+            }
+            if (introDialogTableColsEl) introDialogTableColsEl.value = "4";
+            if (introDialogTableRowsEl) introDialogTableRowsEl.value = "6";
+            if (introDialogTableHeadRowsEl) introDialogTableHeadRowsEl.value = "1";
+            if (introDialogTableMergeEl) introDialogTableMergeEl.checked = false;
+            introDialogTableColsEl?.focus();
+        }
+
+        closeCollapsedGroupMenus();
+        introToolDialogEl.classList.remove("hidden");
+        introToolDialogEl.classList.add("is-open");
+        introToolDialogEl.setAttribute("aria-hidden", "false");
+    }
+
+    function applyToolDialog() {
+        if (!currentDialogKind) return;
+        let snippet = "";
+        if (currentDialogKind === "link") {
+            const text = introDialogLinkTextEl?.value?.trim() || "text";
+            const href = introDialogLinkUrlEl?.value?.trim() || "|";
+            const title = introDialogLinkTitleEl?.value?.trim();
+            snippet = `[${text}](${href}${title ? ` "${title}"` : ""})`;
+        } else if (currentDialogKind === "image") {
+            const alt = introDialogImageAltEl?.value?.trim() || "alt";
+            const src = introDialogImageUrlEl?.value?.trim() || "|";
+            const title = introDialogImageTitleEl?.value?.trim();
+            snippet = `![${alt}](${src}${title ? ` "${title}"` : ""})`;
+        } else if (currentDialogKind === "callout") {
+            const kind = introDialogCalloutKindEl?.value || "info";
+            const title = introDialogCalloutTitleEl?.value?.trim() || "提示";
+            const open = introDialogCalloutOpenEl?.checked ? "{open}" : "";
+            snippet = `:::${kind}[${title}]${open}\n|\n:::\n`;
+        } else if (currentDialogKind === "table") {
+            snippet = buildTableSnippet(
+                introDialogTableStyleEl?.value || "plain",
+                introDialogTableColsEl?.value || "4",
+                introDialogTableRowsEl?.value || "6",
+                introDialogTableHeadRowsEl?.value || "1",
+                Boolean(introDialogTableMergeEl?.checked),
+            );
+        }
+
+        if (snippet) insertSnippet(snippet);
+        closeToolDialog();
+    }
+
+    function bindToolDialog() {
+        if (!introToolDialogEl) return;
+
+        introToolDialogEl.addEventListener("click", (event) => {
+            const target = event.target;
+            if (!(target instanceof Element)) return;
+            if (target.closest("[data-dialog-close]")) closeToolDialog();
+        });
+
+        introToolDialogApplyBtn?.addEventListener("click", applyToolDialog);
+        introToolDialogCancelBtn?.addEventListener("click", closeToolDialog);
+        window.addEventListener("keydown", (event) => {
+            if (event.key !== "Escape") return;
+            if (!introToolDialogEl.classList.contains("is-open")) return;
+            closeToolDialog();
+        });
+    }
+
     function insertSnippet(snippet) {
         const raw = String(snippet || "");
 
@@ -1482,6 +1915,12 @@ export function initWhoami() {
                 return;
             }
 
+            const dialog = button.dataset.dialog;
+            if (dialog) {
+                openToolDialog(dialog, button);
+                return;
+            }
+
             const snippet = button.dataset.snippet;
             if (!snippet) return;
             insertSnippet(snippet);
@@ -1558,6 +1997,7 @@ export function initWhoami() {
 
         await ensureIntroEditor();
         setIntroEditorValue(currentIntro);
+        introBaseline = currentIntro;
         renderMarkdown(introPreviewEl, currentIntro, introRenderer);
         setViewMode("split");
         syncPreviewFromEditor();
@@ -1572,12 +2012,15 @@ export function initWhoami() {
         else introInputEl?.focus();
     }
 
-    function exitIntroEditMode() {
+    function exitIntroEditMode(force = false) {
         if (!introEditBtn || !introViewEl || !introEditorEl) return;
+        if (!force && !confirmDiscardIntroChanges()) return false;
         introEditorEl.classList.add("hidden");
         introEditBtn.classList.remove("hidden");
         introViewEl.classList.remove("hidden");
         setEditingPerformanceMode(false);
+        closeToolDialog();
+        return true;
     }
 
     async function saveIntro(keepEditing) {
@@ -1586,6 +2029,7 @@ export function initWhoami() {
         if (!updated) return false;
 
         currentIntro = updated.intro ?? nextIntro;
+        introBaseline = currentIntro;
         renderMarkdown(introRenderEl, currentIntro, introRenderer);
         showIntroSavedToast("保存成功");
 
@@ -1594,7 +2038,7 @@ export function initWhoami() {
             renderMarkdown(introPreviewEl, currentIntro, introRenderer);
             syncPreviewFromEditor();
         } else {
-            exitIntroEditMode();
+            exitIntroEditMode(true);
         }
 
         return true;
@@ -1632,6 +2076,11 @@ export function initWhoami() {
             } catch (err) {
                 console.warn("highlight.js load failed, continue without syntax highlight:", err);
             }
+            try {
+                await ensureKatexLoaded();
+            } catch (err) {
+                console.warn("katex load failed, continue without math render:", err);
+            }
 
             const res = await fetch(`${API_BASE}/api/me`, {
                 credentials: "include",
@@ -1664,9 +2113,15 @@ export function initWhoami() {
     introPanePreviewEl?.addEventListener("scroll", syncEditorFromPreview, { passive: true });
     bindToolbar();
     bindToolbarGroupHover();
+    bindToolDialog();
     initToolbarResponsiveLayout();
     bindSplitDrag();
     setViewMode("split");
+    window.addEventListener("beforeunload", (event) => {
+        if (!hasUnsavedIntroChanges()) return;
+        event.preventDefault();
+        event.returnValue = "";
+    });
 
     bioDisplayEl?.addEventListener("click", enterBioEditMode);
     bioCancelBtn?.addEventListener("click", exitBioEditMode);
@@ -1684,7 +2139,9 @@ export function initWhoami() {
         void enterIntroEditMode();
     });
 
-    introCancelBtn?.addEventListener("click", exitIntroEditMode);
+    introCancelBtn?.addEventListener("click", () => {
+        exitIntroEditMode(false);
+    });
     introApplyBtn?.addEventListener("click", async () => {
         await saveIntro(true);
     });
