@@ -55,19 +55,24 @@ export async function initAuthHeader(API_BASE) {
 
     const menu = document.createElement("div");
     menu.className =
-        "absolute right-0 top-full pt-2 hidden group-hover:grid grid-cols-2 gap-2 list-panel w-64";
+        "absolute right-0 top-full pt-2 hidden group-hover:grid grid-cols-1 gap-2 list-panel w-64";
 
     const whoamiLink = document.createElement("a");
     whoamiLink.className = "list-btn block px-4 py-2 text-center hover:bg-white/10";
     whoamiLink.href = "/whoami";
     whoamiLink.textContent = "个人中心";
 
+    const settingsLink = document.createElement("a");
+    settingsLink.className = "list-btn block px-4 py-2 text-center hover:bg-white/10";
+    settingsLink.href = "/settings";
+    settingsLink.textContent = "个人设置";
+
     const logoutLink = document.createElement("a");
     logoutLink.className = "list-btn block px-4 py-2 text-center hover:bg-white/10";
     logoutLink.href = "/logout";
     logoutLink.textContent = "退出登录";
 
-    menu.append(whoamiLink, logoutLink);
+    menu.append(whoamiLink, settingsLink, logoutLink);
     root.append(img, menu);
     el.append(root);
 }

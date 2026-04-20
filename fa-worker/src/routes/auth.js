@@ -27,6 +27,7 @@ function parseJsonSafe(value, fallback) {
 }
 
 function parseObjectSafe(value, fallback = {}) {
+	if (value && typeof value === 'object' && !Array.isArray(value)) return value;
 	const parsed = parseJsonSafe(value, fallback);
 	if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return fallback;
 	return parsed;
@@ -82,6 +83,25 @@ function normalizeLinks(value) {
 	});
 }
 
+function normalizeThemeMode(value) {
+	if (typeof value !== 'string') throw new Error('settings.themeMode must be a string');
+	if (!['light', 'dark', 'system'].includes(value)) {
+		throw new Error('settings.themeMode is invalid');
+	}
+	return value;
+}
+
+function normalizeSettings(value) {
+	if (value === undefined) return undefined;
+	if (!value || typeof value !== 'object' || Array.isArray(value)) {
+		throw new Error('settings must be an object');
+	}
+
+	const settings = {};
+	if ('themeMode' in value) settings.themeMode = normalizeThemeMode(value.themeMode);
+	return settings;
+}
+
 function normalizeProfilePatch(body) {
 	if (!body || typeof body !== 'object' || Array.isArray(body)) {
 		throw new Error('Invalid profile payload');
@@ -93,6 +113,7 @@ function normalizeProfilePatch(body) {
 	if ('bio' in body) patch.bio = normalizeStringOrNull(body.bio, 'bio', 240);
 	if ('intro' in body) patch.intro = normalizeStringOrNull(body.intro, 'intro', 10000);
 	if ('links' in body) patch.links = normalizeLinks(body.links);
+	if ('settings' in body) patch.settings = normalizeSettings(body.settings);
 	return patch;
 }
 
@@ -169,7 +190,7 @@ export async function handleRegister(request, env) {
 	}
 
 	const { hash, salt } = await tools.hashPassword(password);
-	const profile = { nickname: username, avatar: null, roles: ['user'] };
+	const profile = { nickname: username, avatar: null, roles: ['user'], settings: { themeMode: 'system' } };
 
 	try {
 		await env.DB.prepare(
@@ -339,6 +360,12 @@ export async function handleUpdateProfile(request, env) {
 	if (patch.bio !== undefined) profile.bio = patch.bio;
 	if (patch.intro !== undefined) profile.intro = patch.intro;
 	if (patch.links !== undefined) profile.links = patch.links;
+	if (patch.settings !== undefined) {
+		profile.settings = {
+			...parseObjectSafe(profile.settings, {}),
+			...patch.settings,
+		};
+	}
 
 	await upsertProfileToD1(env, uid, profile);
 	await env.DB.prepare(`UPDATE users SET profile=json(?) WHERE uid=?`).bind(JSON.stringify(profile), uid).run();

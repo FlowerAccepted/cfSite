@@ -124,7 +124,7 @@ const API_BASE = import.meta.env.PUBLIC_API_BASE;
             import { initAuthHeader } from "/auth-header.js";
             import { initThemeMode } from "/theme-mode.js";
 
-            initThemeMode();
+            initThemeMode({ apiBase: API_BASE });
             initAuthHeader(API_BASE);
             const btn = document.getElementById("back-to-top");
             window.addEventListener("scroll", () => {
