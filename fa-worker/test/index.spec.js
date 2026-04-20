@@ -2,19 +2,32 @@ import { env, createExecutionContext, waitOnExecutionContext, SELF } from 'cloud
 import { describe, it, expect } from 'vitest';
 import worker from '../src';
 
-describe('Hello World worker', () => {
-	it('responds with Hello World! (unit style)', async () => {
-		const request = new Request('http://example.com');
-		// Create an empty context to pass to `worker.fetch()`.
+describe('fa-worker routing and cors', () => {
+	it('responds with OK on root', async () => {
+		const request = new Request('http://example.com/');
 		const ctx = createExecutionContext();
 		const response = await worker.fetch(request, env, ctx);
-		// Wait for all `Promise`s passed to `ctx.waitUntil()` to settle before running test assertions
 		await waitOnExecutionContext(ctx);
-		expect(await response.text()).toMatchInlineSnapshot(`"Hello World!"`);
+		expect(response.status).toBe(200);
+		expect(await response.text()).toBe('OK');
 	});
 
-	it('responds with Hello World! (integration style)', async () => {
-		const response = await SELF.fetch('http://example.com');
-		expect(await response.text()).toMatchInlineSnapshot(`"Hello World!"`);
+	it('responds with Not Found for unknown paths', async () => {
+		const response = await SELF.fetch('http://example.com/not-exists');
+		expect(response.status).toBe(404);
+		expect(await response.text()).toBe('Not Found');
+	});
+
+	it('blocks disallowed cross-origin preflight by default', async () => {
+		const request = new Request('http://example.com/api/me', {
+			method: 'OPTIONS',
+			headers: {
+				Origin: 'https://evil.example',
+				'Access-Control-Request-Method': 'GET',
+			},
+		});
+		const response = await SELF.fetch(request);
+		expect(response.status).toBe(403);
+		expect(await response.text()).toBe('Origin not allowed');
 	});
 });

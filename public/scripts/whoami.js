@@ -812,10 +812,22 @@ function fallbackHighlightCode(source, language) {
     return html;
 }
 
+function sanitizeHref(href) {
+    if (!href || typeof href !== "string") return "#";
+    try {
+        const u = new URL(href, window.location.origin);
+        if (["http:", "https:", "mailto:"].includes(u.protocol)) return u.toString();
+    } catch {
+        return "#";
+    }
+    return "#";
+}
+
 class IntroRenderer extends Renderer {
     link({ href, tokens }) {
-        const text = (tokens || []).map((t) => t.text || "").join("");
-        return `<a href="${href}" class="basic-href" target="_blank" rel="noopener noreferrer">${text}</a>`;
+        const text = escapeHtml((tokens || []).map((t) => t.text || "").join(""));
+        const safeHref = escapeHtml(sanitizeHref(href));
+        return `<a href="${safeHref}" class="basic-href" target="_blank" rel="noopener noreferrer">${text}</a>`;
     }
 
     code(token) {

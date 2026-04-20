@@ -26,6 +26,76 @@ function parseJsonSafe(value, fallback) {
 	}
 }
 
+function parseObjectSafe(value, fallback = {}) {
+	const parsed = parseJsonSafe(value, fallback);
+	if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return fallback;
+	return parsed;
+}
+
+function normalizeUrlOrNull(value, fieldName) {
+	if (value === undefined) return undefined;
+	if (value === null || value === '') return null;
+	if (typeof value !== 'string') throw new Error(`${fieldName} must be a string`);
+	if (value.length > 1024) throw new Error(`${fieldName} is too long`);
+
+	let u;
+	try {
+		u = new URL(value);
+	} catch {
+		throw new Error(`${fieldName} must be a valid URL`);
+	}
+
+	if (u.protocol !== 'http:' && u.protocol !== 'https:') {
+		throw new Error(`${fieldName} protocol is not allowed`);
+	}
+
+	return u.toString();
+}
+
+function normalizeStringOrNull(value, fieldName, maxLength) {
+	if (value === undefined) return undefined;
+	if (value === null) return null;
+	if (typeof value !== 'string') throw new Error(`${fieldName} must be a string`);
+	const v = value.trim();
+	if (v.length > maxLength) throw new Error(`${fieldName} is too long`);
+	return v;
+}
+
+function normalizeLinks(value) {
+	if (value === undefined) return undefined;
+	if (value === null) return null;
+	if (!Array.isArray(value)) throw new Error('links must be an array');
+	if (value.length > 20) throw new Error('too many links');
+
+	return value.map((item, idx) => {
+		if (!item || typeof item !== 'object' || Array.isArray(item)) {
+			throw new Error(`links[${idx}] must be an object`);
+		}
+
+		const label = normalizeStringOrNull(item.label, `links[${idx}].label`, 64);
+		const url = normalizeUrlOrNull(item.url, `links[${idx}].url`);
+		if (!url) throw new Error(`links[${idx}].url is required`);
+		return {
+			label: label || url,
+			url,
+		};
+	});
+}
+
+function normalizeProfilePatch(body) {
+	if (!body || typeof body !== 'object' || Array.isArray(body)) {
+		throw new Error('Invalid profile payload');
+	}
+
+	const patch = {};
+	if ('nickname' in body) patch.nickname = normalizeStringOrNull(body.nickname, 'nickname', 48);
+	if ('avatar' in body) patch.avatar = normalizeUrlOrNull(body.avatar, 'avatar');
+	if ('bio' in body) patch.bio = normalizeStringOrNull(body.bio, 'bio', 240);
+	if ('intro' in body) patch.intro = normalizeStringOrNull(body.intro, 'intro', 10000);
+	if ('links' in body) patch.links = normalizeLinks(body.links);
+	return patch;
+}
+
 async function readProfileFromD1(env, uid) {
 	await ensureUserProfilesTable(env);
 	const row = await env.DB.prepare(
@@ -89,6 +159,9 @@ export async function handleRegister(request, env) {
 	if (!username || !password) {
 		return new Response('Missing fields', { status: 400 });
 	}
+	if (typeof username !== 'string' || !/^[A-Za-z0-9_.-]{3,32}$/.test(username)) {
+		return new Response('Invalid username', { status: 400 });
+	}
 
 	const passwordError = tools.chkPassword(password);
 	if (passwordError) {
@@ -133,6 +206,9 @@ export async function handleLogin(request, env) {
 	if (!username || !password) {
 		return new Response('Missing fields', { status: 400 });
 	}
+	if (typeof username !== 'string' || !/^[A-Za-z0-9_.-]{3,32}$/.test(username)) {
+		return new Response('Invalid username', { status: 400 });
+	}
 
 	const user = await env.DB.prepare(
 		`
@@ -165,7 +241,7 @@ export async function handleLogin(request, env) {
 		.bind(sessionId, user.uid, expiresAt)
 		.run();
 
-	return new Response(JSON.stringify({ ok: true, profile: JSON.parse(user.profile) }), {
+	return new Response(JSON.stringify({ ok: true, profile: parseObjectSafe(user.profile, {}) }), {
 		headers: {
 			'Content-Type': 'application/json',
 			'Set-Cookie': `session=${sessionId}; ` + `HttpOnly; Path=/; ` + `SameSite=None; Secure`,
@@ -241,7 +317,12 @@ export async function handleUpdateProfile(request, env) {
 		return new Response('Invalid JSON', { status: 400 });
 	}
 
-	const { nickname, avatar, bio, intro, links } = body;
+	let patch;
+	try {
+		patch = normalizeProfilePatch(body);
+	} catch (e) {
+		return new Response(e.message || 'Invalid profile payload', { status: 400 });
+	}
 
 	const row = await env.DB.prepare(`SELECT profile FROM users WHERE uid=?`).bind(uid).first();
 
@@ -249,15 +330,15 @@ export async function handleUpdateProfile(request, env) {
 		return new Response('User not found', { status: 404 });
 	}
 
-	const profileFromUsers = parseJsonSafe(row.profile, {});
+	const profileFromUsers = parseObjectSafe(row.profile, {});
 	const profileFromD1 = await readProfileFromD1(env, uid);
 	let profile = { ...profileFromUsers, ...(profileFromD1 || {}) };
 
-	if (nickname !== undefined) profile.nickname = nickname;
-	if (avatar !== undefined) profile.avatar = avatar;
-	if (bio !== undefined) profile.bio = bio;
-	if (intro !== undefined) profile.intro = intro;
-	if (links !== undefined) profile.links = links;
+	if (patch.nickname !== undefined) profile.nickname = patch.nickname;
+	if (patch.avatar !== undefined) profile.avatar = patch.avatar;
+	if (patch.bio !== undefined) profile.bio = patch.bio;
+	if (patch.intro !== undefined) profile.intro = patch.intro;
+	if (patch.links !== undefined) profile.links = patch.links;
 
 	await upsertProfileToD1(env, uid, profile);
 	await env.DB.prepare(`UPDATE users SET profile=json(?) WHERE uid=?`).bind(JSON.stringify(profile), uid).run();
@@ -278,7 +359,7 @@ export async function handleLogout(request, env) {
 
 	return new Response(JSON.stringify({ ok: true }), {
 		headers: {
-			'Set-Cookie': 'session=; HttpOnly; Path=/; Max-Age=0',
+			'Set-Cookie': 'session=; HttpOnly; Path=/; Max-Age=0; SameSite=None; Secure',
 			'Content-Type': 'application/json',
 		},
 	});
@@ -302,7 +383,7 @@ export async function handleMe(request, env) {
 		return new Response('User not found', { status: 404 });
 	}
 
-	const profileFromUsers = parseJsonSafe(user.profile, {});
+	const profileFromUsers = parseObjectSafe(user.profile, {});
 	const profileFromD1 = (await readProfileFromD1(env, uid)) || profileFromUsers;
 	const profile = { ...profileFromUsers, ...profileFromD1 };
 

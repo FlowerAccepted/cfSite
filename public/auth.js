@@ -69,9 +69,8 @@ export function setupAuth(API_BASE) {
     await apiFetch("/api/logout", {
         method: "POST",
         credentials: "include",
-        headers: { 
+        headers: {
             "Content-Type": "application/json",
-            "Cookie": document.cookie,
         },
     });
     location.href = "/";

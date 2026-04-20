@@ -1,44 +1,65 @@
+function sanitizeAvatarUrl(value) {
+    if (!value || typeof value !== "string") return null;
+    try {
+        const u = new URL(value, window.location.origin);
+        if (u.protocol === "http:" || u.protocol === "https:") return u.toString();
+    } catch {
+        return null;
+    }
+    return null;
+}
+
+function buildLink(href, text) {
+    const a = document.createElement("a");
+    a.className = "glass-btn";
+    a.href = href;
+    a.textContent = text;
+    return a;
+}
+
 export async function initAuthHeader(API_BASE) {
     const el = document.getElementById("auth-area");
     if (!el) return;
 
-    // 尝试访问一个需要登录的接口
     const res = await fetch(`${API_BASE}/api/me`, {
         credentials: "include",
     });
 
-    // 未登录
+    el.textContent = "";
+
     if (!res.ok) {
-        el.innerHTML = `
-      <a class="glass-btn" href="/login">登录</a>
-      <a class="glass-btn" href="/register">注册</a>
-    `;
+        el.append(buildLink("/login", "登录"), buildLink("/register", "注册"));
         return;
     }
 
-    // 已登录
     const user = await res.json();
-    const avatar = user.profile?.avatar ?? "https://cdn.jsdmirror.com/gh/FlowerAccepted/gh-src-for-cfsite-dns@main/defult_avatar.png";
+    const fallbackAvatar =
+        "https://cdn.jsdmirror.com/gh/FlowerAccepted/gh-src-for-cfsite-dns@main/defult_avatar.png";
+    const avatar = sanitizeAvatarUrl(user?.profile?.avatar) || fallbackAvatar;
 
-    el.innerHTML = `
-    <div class="relative group inline-block">
-        <img src="${avatar}" alt="用户头像" class="w-8 h-8 rounded-full cursor-pointer" />
-        <div
-            class="absolute right-0 top-full pt-2
-                opacity-0 pointer-events-none
-                group-hover:opacity-100
-                group-hover:pointer-events-auto
-                grid grid-cols-2 gap-2
-                list-panel w-64">
-            <a class="list-btn block px-4 py-2 text-center hover:bg-white/10"
-            href="/whoami">
-            个人中心
-            </a>
-            <a class="list-btn block px-4 py-2 text-center hover:bg-white/10"
-            href="/logout">
-            退出登录
-            </a>
-        </div>
-    </div>
-    `;
+    const root = document.createElement("div");
+    root.className = "relative group inline-block";
+
+    const img = document.createElement("img");
+    img.src = avatar;
+    img.alt = "用户头像";
+    img.className = "w-8 h-8 rounded-full cursor-pointer";
+
+    const menu = document.createElement("div");
+    menu.className =
+        "absolute right-0 top-full pt-2 opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto grid grid-cols-2 gap-2 list-panel w-64";
+
+    const whoamiLink = document.createElement("a");
+    whoamiLink.className = "list-btn block px-4 py-2 text-center hover:bg-white/10";
+    whoamiLink.href = "/whoami";
+    whoamiLink.textContent = "个人中心";
+
+    const logoutLink = document.createElement("a");
+    logoutLink.className = "list-btn block px-4 py-2 text-center hover:bg-white/10";
+    logoutLink.href = "/logout";
+    logoutLink.textContent = "退出登录";
+
+    menu.append(whoamiLink, logoutLink);
+    root.append(img, menu);
+    el.append(root);
 }
