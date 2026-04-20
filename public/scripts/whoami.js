@@ -830,6 +830,17 @@ class IntroRenderer extends Renderer {
         return `<a href="${safeHref}" class="basic-href" target="_blank" rel="noopener noreferrer">${text}</a>`;
     }
 
+    image({ href, title, text }) {
+        const safeSrc = escapeHtml(sanitizeHref(href));
+        const safeAlt = escapeHtml(text || "");
+        const safeTitle = title ? ` title="${escapeHtml(title)}"` : "";
+        return `<img src="${safeSrc}" alt="${safeAlt}"${safeTitle} loading="lazy" />`;
+    }
+
+    html({ text }) {
+        return escapeHtml(text || "");
+    }
+
     code(token) {
         const code = token.text || "";
         const info = parseFenceInfo(token.lang || "");
