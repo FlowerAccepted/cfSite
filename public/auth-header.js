@@ -21,9 +21,17 @@ export async function initAuthHeader(API_BASE) {
     const el = document.getElementById("auth-area");
     if (!el) return;
 
-    const res = await fetch(`${API_BASE}/api/me`, {
-        credentials: "include",
-    });
+    let res;
+    try {
+        res = await fetch(`${API_BASE}/api/me`, {
+            credentials: "include",
+        });
+    } catch (err) {
+        console.warn("auth header fetch failed:", err);
+        el.textContent = "";
+        el.append(buildLink("/login", "登录"), buildLink("/register", "注册"));
+        return;
+    }
 
     el.textContent = "";
 

@@ -30,4 +30,15 @@ describe('fa-worker routing and cors', () => {
 		expect(response.status).toBe(403);
 		expect(await response.text()).toBe('Origin not allowed');
 	});
+
+	it('allows localhost cross-port origin for local development', async () => {
+		const request = new Request('http://localhost:8787/api/me', {
+			headers: {
+				Origin: 'http://localhost:4321',
+			},
+		});
+		const response = await worker.fetch(request, env, createExecutionContext());
+		expect(response.status).toBe(401);
+		expect(response.headers.get('Access-Control-Allow-Origin')).toBe('http://localhost:4321');
+	});
 });

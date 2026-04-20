@@ -21,14 +21,28 @@ function normalizeOrigin(origin) {
   }
 }
 
+function isLoopbackHost(hostname) {
+  return hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '::1';
+}
+
 function isAllowedOrigin(request, origin, allowedOrigins) {
   if (!origin) return true;
 
   const normalized = normalizeOrigin(origin);
   if (!normalized) return false;
 
-  const requestOrigin = normalizeOrigin(new URL(request.url).origin);
+  const requestUrl = new URL(request.url);
+  const requestOrigin = normalizeOrigin(requestUrl.origin);
   if (normalized === requestOrigin) return true;
+
+  try {
+    const originUrl = new URL(normalized);
+    if (isLoopbackHost(requestUrl.hostname) && isLoopbackHost(originUrl.hostname)) {
+      return true;
+    }
+  } catch {
+    return false;
+  }
 
   return allowedOrigins.has(normalized);
 }
