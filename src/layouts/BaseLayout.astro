@@ -12,6 +12,20 @@ const API_BASE = import.meta.env.PUBLIC_API_BASE;
         <meta charset="UTF-8" />
         <link rel="stylesheet" href="/styles.css" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <script is:inline>
+            (() => {
+                try {
+                    const mode = localStorage.getItem("cf-theme-mode") || "system";
+                    const prefersDark =
+                        typeof window.matchMedia === "function" &&
+                        window.matchMedia("(prefers-color-scheme: dark)").matches;
+                    const isDark = mode === "dark" || (mode === "system" && prefersDark);
+                    if (isDark) document.documentElement.classList.add("dark-theme");
+                } catch {
+                    // ignore
+                }
+            })();
+        </script>
         <link
             rel="icon"
             href="https://cdn.jsdmirror.com/gh/FlowerAccepted/gh-src-for-cfsite-dns@main/favicon.svg"
@@ -71,15 +85,30 @@ const API_BASE = import.meta.env.PUBLIC_API_BASE;
                 </svg>
             </SidebarLink>
             <SidebarLink href="/info/" label="公告">
-                <svg 
+                <svg
                     slot="icon"
                     class="w-5 h-5 shrink-0"
                     viewBox="48.5 48.5 28 28"
                 >
-                <path d="M50 62.5C50 55.5964 55.5964 50 62.5 50C69.4036 50 75 55.5964 75 62.5C75 69.4036 69.4036 75 62.5 75C55.5964 75 50 69.4036 50 62.5Z" fill="none" opacity="1" stroke=currentColor stroke-linecap="butt" stroke-linejoin="round" stroke-width="1.6"/>
-                <text fill=currentColor font-family="Ubuntu-Bold" font-size="15" opacity="1" stroke="none" text-anchor="start" transform="matrix(1 0 0 1 60.1242 54.3874)" x="0" y="0">
-                    <tspan textLength="4.335" x="0.208272" y="13.9801"><![CDATA[i]]></tspan>
-                </text>
+                    <path d="M50 62.5C50 55.5964 55.5964 50 62.5 50C69.4036 50 75 55.5964 75 62.5C75 69.4036 69.4036 75 62.5 75C55.5964 75 50 69.4036 50 62.5Z" fill="none" opacity="1" stroke=currentColor stroke-linecap="butt" stroke-linejoin="round" stroke-width="1.6"></path>
+                    <text fill=currentColor font-family="Ubuntu-Bold" font-size="15" opacity="1" stroke="none" text-anchor="start" transform="matrix(1 0 0 1 60.1242 54.3874)" x="0" y="0">
+                        <tspan textLength="4.335" x="0.208272" y="13.9801"><![CDATA[i]]></tspan>
+                    </text>
+                </svg>
+            </SidebarLink>
+            <SidebarLink href="/settings" label="设置">
+                <svg
+                    slot="icon"
+                    class="w-5 h-5 shrink-0"
+                    viewBox="0 0 24 24"
+                >
+                    <path
+                        d="M10.33 2.45c.39-1.01 1.95-1.01 2.34 0l.52 1.33c.13.33.44.56.8.61l1.42.2c1.08.15 1.56 1.49.78 2.26l-1.02 1c-.26.25-.37.62-.31.97l.24 1.41c.18 1.07-.95 1.89-1.92 1.38l-1.27-.67a1.2 1.2 0 0 0-1.12 0l-1.27.67c-.97.51-2.1-.31-1.92-1.38l.24-1.41c.06-.35-.05-.72-.31-.97l-1.02-1c-.78-.77-.3-2.11.78-2.26l1.42-.2c.36-.05.67-.28.8-.61l.52-1.33z"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="1.6"
+                    ></path>
+                    <circle cx="12" cy="7.8" r="1.8" fill="none" stroke="currentColor" stroke-width="1.6"></circle>
                 </svg>
             </SidebarLink>
         </aside>
@@ -93,6 +122,9 @@ const API_BASE = import.meta.env.PUBLIC_API_BASE;
         </button>
         <script type="module" define:vars={{ API_BASE }}>
             import { initAuthHeader } from "/auth-header.js";
+            import { initThemeMode } from "/theme-mode.js";
+
+            initThemeMode();
             initAuthHeader(API_BASE);
             const btn = document.getElementById("back-to-top");
             window.addEventListener("scroll", () => {

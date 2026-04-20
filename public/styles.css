@@ -1466,3 +1466,180 @@ hr {
     margin-top: 20px;
     margin-bottom: 20px;
 }
+
+/* ===== 简约仿古主题（无毛玻璃） ===== */
+:root {
+    --bg-image: none;
+    --page-bg: #f4efe2;
+    --surface-1: #fbf7ec;
+    --surface-2: #f2e9d8;
+    --surface-3: #e8dcc6;
+    --text-color: #3f3426;
+    --text-muted: #786a52;
+    --accent-color: #8a6a3f;
+    --basic-href: #7a5830;
+    --right-tools-bg: #7a5a33;
+    --rev-text-color: #f9f3e7;
+    --glass-bg: var(--surface-1);
+    --nglass-bg: var(--surface-2);
+    --nglass-front: #eadfc9;
+    --glass-border: #c6b497;
+    --shadow: 0 1px 0 rgba(0, 0, 0, 0.03), 0 6px 16px rgba(60, 45, 25, 0.08);
+    --blur-sz: 0px;
+    --stressed-text: #7f5f38;
+    --br-color: #b7a58a;
+}
+
+.dark-theme {
+    --page-bg: #201912;
+    --surface-1: #2a2118;
+    --surface-2: #352a1f;
+    --surface-3: #423426;
+    --text-color: #efe2cb;
+    --text-muted: #c1af90;
+    --accent-color: #d0b07b;
+    --basic-href: #d7bb86;
+    --right-tools-bg: #c6a46b;
+    --rev-text-color: #1e1711;
+    --glass-bg: var(--surface-1);
+    --nglass-bg: var(--surface-2);
+    --nglass-front: #483726;
+    --glass-border: #5b4830;
+    --shadow: 0 1px 0 rgba(0, 0, 0, 0.12), 0 8px 22px rgba(0, 0, 0, 0.28);
+    --stressed-text: #d8b982;
+    --br-color: #6a553a;
+}
+
+body {
+    background: var(--page-bg);
+    color: var(--text-color);
+}
+
+.background {
+    background-image: none;
+    background: radial-gradient(1200px 600px at 20% -10%, rgba(196, 166, 119, 0.16), transparent 70%),
+        radial-gradient(900px 500px at 95% 10%, rgba(156, 120, 71, 0.14), transparent 75%),
+        var(--page-bg);
+}
+
+.glass-sidebar,
+.glass-panel,
+.glass-btn,
+.glass-input,
+.list-panel,
+.list-btn {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+}
+
+.glass-sidebar,
+.glass-panel,
+.glass-btn,
+.glass-input,
+.list-panel,
+.list-btn,
+.content {
+    border-color: var(--glass-border) !important;
+    box-shadow: var(--shadow);
+}
+
+.glass-sidebar,
+.glass-panel,
+.glass-btn,
+.glass-input,
+.list-panel {
+    background: var(--surface-1);
+}
+
+.content {
+    background: var(--surface-2);
+    border: 1px solid var(--glass-border);
+}
+
+.nav-left h1,
+.nav-right,
+.left-nav a,
+.basic-href,
+.link-btn,
+.list-btn,
+.glass-btn {
+    color: var(--text-color);
+}
+
+.basic-href,
+#intro-render a,
+#intro-preview a {
+    color: var(--basic-href);
+    border-bottom-color: rgba(122, 88, 48, 0.35);
+}
+
+.glass-btn:hover,
+.list-btn:hover,
+.link-btn:hover,
+.category:hover,
+.list-panel:hover {
+    animation: none !important;
+    transform: none !important;
+}
+
+.list-panel {
+    background: var(--surface-2);
+}
+
+.list-btn {
+    background: var(--surface-3);
+    color: var(--text-color);
+}
+
+input::-webkit-input-placeholder,
+input::-moz-placeholder,
+input:-ms-input-placeholder {
+    color: var(--text-muted);
+}
+
+.back-to-top {
+    background: var(--right-tools-bg);
+}
+
+.dark-theme .background {
+    background: radial-gradient(1200px 600px at 20% -10%, rgba(184, 143, 82, 0.12), transparent 70%),
+        radial-gradient(900px 500px at 95% 10%, rgba(146, 107, 54, 0.14), transparent 75%),
+        var(--page-bg);
+}
+
+/* 设置页 */
+.settings-panel h2 {
+    margin-top: 0;
+}
+
+.settings-desc {
+    color: var(--text-muted);
+    margin-top: 0;
+}
+
+.settings-group {
+    display: grid;
+    gap: 10px;
+    margin-top: 16px;
+}
+
+.settings-option {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 12px;
+    border: 1px solid var(--glass-border);
+    border-radius: 8px;
+    background: var(--surface-2);
+    cursor: pointer;
+}
+
+.settings-option input {
+    accent-color: var(--accent-color);
+}
+
+.settings-status {
+    margin-top: 12px;
+    color: var(--text-muted);
+    font-size: 14px;
+}

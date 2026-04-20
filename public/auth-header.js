@@ -55,7 +55,7 @@ export async function initAuthHeader(API_BASE) {
 
     const menu = document.createElement("div");
     menu.className =
-        "absolute right-0 top-full pt-2 opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto grid grid-cols-2 gap-2 list-panel w-64";
+        "absolute right-0 top-full pt-2 hidden group-hover:grid grid-cols-2 gap-2 list-panel w-64";
 
     const whoamiLink = document.createElement("a");
     whoamiLink.className = "list-btn block px-4 py-2 text-center hover:bg-white/10";

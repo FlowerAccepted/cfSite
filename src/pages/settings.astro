@@ -1,0 +1,36 @@
+---
+import BaseLayout from "../layouts/BaseLayout.astro";
+---
+
+<BaseLayout title="设置 - FAc's Site">
+    <section class="title-section glass-panel">
+        <h1>外观设置</h1>
+    </section>
+
+    <section class="glass-panel settings-panel">
+        <h2>主题模式</h2>
+        <p class="settings-desc">可选择浅色、深色，或跟随系统。本站当前使用无毛玻璃的简约仿古配色。</p>
+
+        <div class="settings-group" role="radiogroup" aria-label="主题模式">
+            <label class="settings-option">
+                <input type="radio" name="theme-mode" value="light" />
+                <span>浅色</span>
+            </label>
+            <label class="settings-option">
+                <input type="radio" name="theme-mode" value="dark" />
+                <span>深色</span>
+            </label>
+            <label class="settings-option">
+                <input type="radio" name="theme-mode" value="system" />
+                <span>跟随系统</span>
+            </label>
+        </div>
+
+        <p id="theme-status" class="settings-status"></p>
+    </section>
+
+    <script type="module">
+        import { initThemeSettings } from "/theme-mode.js";
+        initThemeSettings();
+    </script>
+</BaseLayout>
