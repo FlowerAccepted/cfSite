@@ -26,14 +26,24 @@ const API_BASE = import.meta.env.PUBLIC_API_BASE;
                         "rose",
                         "slate",
                         "aurora",
+                        "antique-flat",
+                        "ocean-flat",
+                        "sunset-flat",
+                        "forest-flat",
+                        "rose-flat",
+                        "slate-flat",
+                        "aurora-flat",
                     ]);
                     const safeStyle = validStyles.has(style) ? style : "glass";
                     const prefersDark =
                         typeof window.matchMedia === "function" &&
                         window.matchMedia("(prefers-color-scheme: dark)").matches;
                     const isDark = mode === "dark" || (mode === "system" && prefersDark);
+                    const styleClasses = safeStyle.endsWith("-flat")
+                        ? [`theme-${safeStyle.slice(0, -5)}`, "theme-flat", `theme-${safeStyle}`]
+                        : [`theme-${safeStyle}`];
                     if (isDark) document.documentElement.classList.add("dark-theme");
-                    document.documentElement.classList.add(`theme-${safeStyle}`);
+                    for (const cls of styleClasses) document.documentElement.classList.add(cls);
                 } catch {
                     // ignore
                 }

@@ -107,7 +107,25 @@ function normalizeThemeMode(value) {
 
 function normalizeThemeStyle(value) {
 	if (typeof value !== 'string') throw new Error('settings.themeStyle must be a string');
-	if (!['glass', 'antique', 'ocean', 'sunset', 'forest', 'rose', 'slate', 'aurora'].includes(value)) {
+	if (
+		![
+			'glass',
+			'antique',
+			'ocean',
+			'sunset',
+			'forest',
+			'rose',
+			'slate',
+			'aurora',
+			'antique-flat',
+			'ocean-flat',
+			'sunset-flat',
+			'forest-flat',
+			'rose-flat',
+			'slate-flat',
+			'aurora-flat',
+		].includes(value)
+	) {
 		throw new Error('settings.themeStyle is invalid');
 	}
 	return value;

@@ -2062,6 +2062,53 @@ hr {
     background: var(--right-tools-bg);
 }
 
+/* 非图片背景主题：顶栏/边栏去掉毛玻璃 */
+.theme-antique .glass-sidebar,
+.theme-ocean .glass-sidebar,
+.theme-sunset .glass-sidebar,
+.theme-forest .glass-sidebar,
+.theme-rose .glass-sidebar,
+.theme-slate .glass-sidebar,
+.theme-aurora .glass-sidebar {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+}
+
+/* 纯色无毛玻璃复刻版 */
+.theme-flat {
+    --blur-sz: 0px;
+}
+
+.theme-flat .glass-sidebar,
+.theme-flat .glass-panel,
+.theme-flat .glass-btn,
+.theme-flat .glass-input,
+.theme-flat .list-panel,
+.theme-flat .list-btn,
+.theme-flat .content {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+}
+
+.theme-flat .glass-sidebar {
+    background: var(--surface-3) !important;
+    border-color: var(--glass-border) !important;
+}
+
+.theme-flat .top-nav,
+.theme-flat .left-nav {
+    background: var(--surface-3) !important;
+}
+
+.theme-flat .glass-panel,
+.theme-flat .glass-btn,
+.theme-flat .glass-input,
+.theme-flat .list-panel,
+.theme-flat .list-btn,
+.theme-flat .content {
+    border-color: var(--glass-border) !important;
+}
+
 /* 设置页 */
 .settings-panel h2 {
     margin-top: 0;

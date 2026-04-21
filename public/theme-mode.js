@@ -4,7 +4,23 @@ const DARK_CLASS = "dark-theme";
 const STYLE_CLASS_PREFIX = "theme-";
 
 const VALID_MODES = ["light", "dark", "system"];
-const VALID_STYLES = ["glass", "antique", "ocean", "sunset", "forest", "rose", "slate", "aurora"];
+const VALID_STYLES = [
+    "glass",
+    "antique",
+    "ocean",
+    "sunset",
+    "forest",
+    "rose",
+    "slate",
+    "aurora",
+    "antique-flat",
+    "ocean-flat",
+    "sunset-flat",
+    "forest-flat",
+    "rose-flat",
+    "slate-flat",
+    "aurora-flat",
+];
 
 const MODE_LABELS = {
     light: "浅色模式",
@@ -21,6 +37,13 @@ const STYLE_LABELS = {
     rose: "樱花粉",
     slate: "石墨灰",
     aurora: "极光霓彩",
+    "antique-flat": "简约仿古（纯色）",
+    "ocean-flat": "海洋蓝（纯色）",
+    "sunset-flat": "晚霞橙（纯色）",
+    "forest-flat": "森绿（纯色）",
+    "rose-flat": "樱花粉（纯色）",
+    "slate-flat": "石墨灰（纯色）",
+    "aurora-flat": "极光霓彩（纯色）",
 };
 
 function normalizeMode(mode) {
@@ -33,6 +56,15 @@ function normalizeStyle(style) {
 
 function styleClassName(style) {
     return `${STYLE_CLASS_PREFIX}${normalizeStyle(style)}`;
+}
+
+function expandStyleClasses(style) {
+    const next = normalizeStyle(style);
+    if (next.endsWith("-flat")) {
+        const base = next.slice(0, -5);
+        return [`theme-${base}`, "theme-flat", `theme-${base}-flat`];
+    }
+    return [`theme-${next}`];
 }
 
 function readMode() {
@@ -110,15 +142,17 @@ export function applyThemeMode(mode) {
 }
 
 export function applyThemeStyle(style) {
-    const next = normalizeStyle(style);
+    const nextClasses = new Set(expandStyleClasses(style));
     for (const candidate of VALID_STYLES) {
         const cls = styleClassName(candidate);
         document.documentElement.classList.remove(cls);
         document.body.classList.remove(cls);
     }
-
-    const targetClass = styleClassName(next);
-    document.documentElement.classList.add(targetClass);
+    document.documentElement.classList.remove("theme-flat");
+    document.body.classList.remove("theme-flat");
+    for (const cls of nextClasses) {
+        document.documentElement.classList.add(cls);
+    }
 }
 
 export async function initThemeMode({ apiBase } = {}) {
