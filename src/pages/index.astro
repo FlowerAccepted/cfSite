@@ -30,7 +30,7 @@ const renderedMarkdown = marked(markdownContent, { renderer });
     <section id="tools-list">
         <div id="categories"></div>
     </section>
-    <div id="scroll-hint" class="scroll-hint">
+    <div id="scroll-hint" class="scroll-hint" slot="overlay">
         <div class="float">
             <p>下滑查看更多</p>
             <div class="arrows">
@@ -43,14 +43,16 @@ const renderedMarkdown = marked(markdownContent, { renderer });
     <script src="/index.js" is:inline></script>
     <script type="module" is:inline>
         const hint = document.getElementById("scroll-hint");
+        if (hint) {
+            let state = "visible";
+            let timer = null;
+            const FADE_TIME = 600;
 
-        let state = "visible";
-        let timer = null;
-        const FADE_TIME = 600;
+            hint.classList.remove("hidden", "fading");
+            hint.classList.add("visible");
 
-        window.addEventListener("scroll", () => {
-            const shouldHide = window.scrollY > 80;
-            if (shouldHide && state === "visible") {
+            function hideHint() {
+                if (state !== "visible") return;
                 state = "fading";
                 hint.classList.remove("visible");
                 hint.classList.add("fading");
@@ -59,14 +61,30 @@ const renderedMarkdown = marked(markdownContent, { renderer });
                     hint.classList.remove("fading");
                     hint.classList.add("hidden");
                     state = "hidden";
+                    timer = null;
                 }, FADE_TIME);
             }
-            if (!shouldHide && state === "hidden") {
-                clearTimeout(timer);
-                hint.classList.remove("hidden");
+
+            function showHint() {
+                if (state === "visible") return;
+                if (timer) {
+                    clearTimeout(timer);
+                    timer = null;
+                }
+                hint.classList.remove("hidden", "fading");
                 hint.classList.add("visible");
                 state = "visible";
             }
-        });
+
+            window.addEventListener(
+                "scroll",
+                () => {
+                    const shouldHide = window.scrollY > 80;
+                    if (shouldHide) hideHint();
+                    else showHint();
+                },
+                { passive: true },
+            );
+        }
     </script>
 </BaseLayout>

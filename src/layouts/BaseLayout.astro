@@ -17,12 +17,23 @@ const API_BASE = import.meta.env.PUBLIC_API_BASE;
                 try {
                     const mode = localStorage.getItem("cf-theme-mode") || "system";
                     const style = localStorage.getItem("cf-theme-style") || "glass";
+                    const validStyles = new Set([
+                        "glass",
+                        "antique",
+                        "ocean",
+                        "sunset",
+                        "forest",
+                        "rose",
+                        "slate",
+                        "aurora",
+                    ]);
+                    const safeStyle = validStyles.has(style) ? style : "glass";
                     const prefersDark =
                         typeof window.matchMedia === "function" &&
                         window.matchMedia("(prefers-color-scheme: dark)").matches;
                     const isDark = mode === "dark" || (mode === "system" && prefersDark);
                     if (isDark) document.documentElement.classList.add("dark-theme");
-                    document.documentElement.classList.add(style === "antique" ? "theme-antique" : "theme-glass");
+                    document.documentElement.classList.add(`theme-${safeStyle}`);
                 } catch {
                     // ignore
                 }
@@ -125,6 +136,7 @@ const API_BASE = import.meta.env.PUBLIC_API_BASE;
         <main class={`content ${mainClass}`.trim()}>
             <slot />
         </main>
+        <slot name="overlay" />
         <button id="back-to-top" class="back-to-top">
             <span class="back-to-up-arrow"></span>
             <p class="back-to-up-text">Top</p>

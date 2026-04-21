@@ -12,6 +12,8 @@ const ACE_TEXT_MODE_URL =
     "https://cdn.jsdelivr.net/npm/ace-builds@1.43.3/src-min-noconflict/mode-text.js";
 const ACE_CHROME_THEME_URL =
     "https://cdn.jsdelivr.net/npm/ace-builds@1.43.3/src-min-noconflict/theme-chrome.js";
+const ACE_DARK_THEME_URL =
+    "https://cdn.jsdelivr.net/npm/ace-builds@1.43.3/src-min-noconflict/theme-tomorrow_night_eighties.js";
 const HIGHLIGHT_JS_URL =
     "https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.11.1/build/highlight.min.js";
 const HIGHLIGHT_CSS_URL =
@@ -182,6 +184,7 @@ function ensureAceDepsLoaded() {
     try {
         ace.require("ace/mode/markdown");
         ace.require("ace/theme/chrome");
+        ace.require("ace/theme/tomorrow_night_eighties");
         return Promise.resolve();
     } catch {
         // Continue to network loading.
@@ -192,6 +195,7 @@ function ensureAceDepsLoaded() {
             loadScript(ACE_TEXT_MODE_URL),
             loadScript(ACE_MARKDOWN_MODE_URL),
             loadScript(ACE_CHROME_THEME_URL),
+            loadScript(ACE_DARK_THEME_URL),
         ]).then(() => undefined);
     }
     return aceDepsLoadPromise;
@@ -1370,6 +1374,16 @@ export function initWhoami() {
         mainContentEl.classList.toggle("whoami-editing", Boolean(editing));
     }
 
+    function resolveAceTheme() {
+        const isDark = document.documentElement.classList.contains("dark-theme");
+        return isDark ? "ace/theme/tomorrow_night_eighties" : "ace/theme/chrome";
+    }
+
+    function applyIntroEditorTheme() {
+        if (!introEditor) return;
+        introEditor.setTheme(resolveAceTheme());
+    }
+
     function getIntroEditorValue() {
         if (introEditor) return introEditor.getValue();
         return introInputEl?.value || "";
@@ -1960,7 +1974,7 @@ export function initWhoami() {
             if (!ace) throw new Error("ace not found on window");
 
             introEditor = ace.edit("intro-ide");
-            introEditor.setTheme("ace/theme/chrome");
+            applyIntroEditorTheme();
             const useCustomMode = ensureAceCustomMode();
             const targetMode = useCustomMode ? "ace/mode/cfsite_markdown" : "ace/mode/markdown";
             introEditor.session.setMode(targetMode);
@@ -2140,6 +2154,15 @@ export function initWhoami() {
     initToolbarResponsiveLayout();
     bindSplitDrag();
     setViewMode("split");
+    if ("MutationObserver" in window) {
+        const themeObserver = new MutationObserver(() => {
+            applyIntroEditorTheme();
+        });
+        themeObserver.observe(document.documentElement, {
+            attributes: true,
+            attributeFilter: ["class"],
+        });
+    }
     window.addEventListener("beforeunload", (event) => {
         if (!hasUnsavedIntroChanges()) return;
         event.preventDefault();

@@ -1,11 +1,27 @@
 const THEME_MODE_KEY = "cf-theme-mode";
 const THEME_STYLE_KEY = "cf-theme-style";
 const DARK_CLASS = "dark-theme";
-const GLASS_CLASS = "theme-glass";
-const ANTIQUE_CLASS = "theme-antique";
+const STYLE_CLASS_PREFIX = "theme-";
 
 const VALID_MODES = ["light", "dark", "system"];
-const VALID_STYLES = ["glass", "antique"];
+const VALID_STYLES = ["glass", "antique", "ocean", "sunset", "forest", "rose", "slate", "aurora"];
+
+const MODE_LABELS = {
+    light: "浅色模式",
+    dark: "深色模式",
+    system: "跟随系统",
+};
+
+const STYLE_LABELS = {
+    glass: "原版毛玻璃",
+    antique: "简约仿古",
+    ocean: "海洋蓝",
+    sunset: "晚霞橙",
+    forest: "森绿",
+    rose: "樱花粉",
+    slate: "石墨灰",
+    aurora: "极光霓彩",
+};
 
 function normalizeMode(mode) {
     return VALID_MODES.includes(mode) ? mode : "system";
@@ -13,6 +29,10 @@ function normalizeMode(mode) {
 
 function normalizeStyle(style) {
     return VALID_STYLES.includes(style) ? style : "glass";
+}
+
+function styleClassName(style) {
+    return `${STYLE_CLASS_PREFIX}${normalizeStyle(style)}`;
 }
 
 function readMode() {
@@ -33,16 +53,21 @@ function isDarkByMode(mode) {
 
 function updateStatusText(statusEl, mode, style, suffix = "") {
     if (!statusEl) return;
-    const modeMap = {
-        light: "浅色模式",
-        dark: "深色模式",
-        system: "跟随系统",
+    statusEl.textContent = `当前：${MODE_LABELS[mode] || "跟随系统"} + ${STYLE_LABELS[style] || "原版毛玻璃"}${suffix}`;
+}
+
+function extractServerThemeSettings(data) {
+    const settings = data?.profile?.settings;
+    if (!settings || typeof settings !== "object" || Array.isArray(settings)) return null;
+
+    const hasMode = VALID_MODES.includes(settings.themeMode);
+    const hasStyle = VALID_STYLES.includes(settings.themeStyle);
+    if (!hasMode && !hasStyle) return null;
+
+    return {
+        themeMode: hasMode ? normalizeMode(settings.themeMode) : null,
+        themeStyle: hasStyle ? normalizeStyle(settings.themeStyle) : null,
     };
-    const styleMap = {
-        glass: "毛玻璃",
-        antique: "简约仿古",
-    };
-    statusEl.textContent = `当前：${modeMap[mode] || "跟随系统"} + ${styleMap[style] || "毛玻璃"}${suffix}`;
 }
 
 async function fetchUserThemeSettings(apiBase) {
@@ -51,11 +76,7 @@ async function fetchUserThemeSettings(apiBase) {
         const res = await fetch(`${apiBase}/api/me`, { credentials: "include" });
         if (!res.ok) return null;
         const data = await res.json();
-        const settings = data?.profile?.settings || {};
-        return {
-            themeMode: normalizeMode(settings.themeMode),
-            themeStyle: normalizeStyle(settings.themeStyle),
-        };
+        return extractServerThemeSettings(data);
     } catch {
         return null;
     }
@@ -85,22 +106,26 @@ export function applyThemeMode(mode) {
     const next = normalizeMode(mode);
     const isDark = isDarkByMode(next);
     document.documentElement.classList.toggle(DARK_CLASS, isDark);
-    document.body.classList.toggle(DARK_CLASS, isDark);
+    document.body.classList.remove(DARK_CLASS);
 }
 
 export function applyThemeStyle(style) {
     const next = normalizeStyle(style);
-    document.documentElement.classList.toggle(GLASS_CLASS, next === "glass");
-    document.documentElement.classList.toggle(ANTIQUE_CLASS, next === "antique");
-    document.body.classList.toggle(GLASS_CLASS, next === "glass");
-    document.body.classList.toggle(ANTIQUE_CLASS, next === "antique");
+    for (const candidate of VALID_STYLES) {
+        const cls = styleClassName(candidate);
+        document.documentElement.classList.remove(cls);
+        document.body.classList.remove(cls);
+    }
+
+    const targetClass = styleClassName(next);
+    document.documentElement.classList.add(targetClass);
 }
 
 export async function initThemeMode({ apiBase } = {}) {
-    const localMode = readMode();
-    const localStyle = readStyle();
-    applyThemeMode(localMode);
-    applyThemeStyle(localStyle);
+    let themeMode = readMode();
+    let themeStyle = readStyle();
+    applyThemeMode(themeMode);
+    applyThemeStyle(themeStyle);
 
     if (typeof window.matchMedia === "function") {
         const media = window.matchMedia("(prefers-color-scheme: dark)");
@@ -110,16 +135,18 @@ export async function initThemeMode({ apiBase } = {}) {
     }
 
     const serverSettings = await fetchUserThemeSettings(apiBase);
-    if (serverSettings) {
-        const { themeMode, themeStyle } = serverSettings;
-        if (themeMode !== localMode) {
-            localStorage.setItem(THEME_MODE_KEY, themeMode);
-            applyThemeMode(themeMode);
-        }
-        if (themeStyle !== localStyle) {
-            localStorage.setItem(THEME_STYLE_KEY, themeStyle);
-            applyThemeStyle(themeStyle);
-        }
+    if (!serverSettings) return;
+
+    if (serverSettings.themeMode && serverSettings.themeMode !== themeMode) {
+        themeMode = serverSettings.themeMode;
+        localStorage.setItem(THEME_MODE_KEY, themeMode);
+        applyThemeMode(themeMode);
+    }
+
+    if (serverSettings.themeStyle && serverSettings.themeStyle !== themeStyle) {
+        themeStyle = serverSettings.themeStyle;
+        localStorage.setItem(THEME_STYLE_KEY, themeStyle);
+        applyThemeStyle(themeStyle);
     }
 }
 
@@ -133,12 +160,15 @@ export async function initThemeSettings({ apiBase, modeGroupName = "theme-mode",
     let themeStyle = readStyle();
 
     const serverSettings = await fetchUserThemeSettings(apiBase);
-    if (serverSettings) {
+    const hasServerSettings = Boolean(serverSettings?.themeMode || serverSettings?.themeStyle);
+    if (serverSettings?.themeMode) {
         themeMode = serverSettings.themeMode;
-        themeStyle = serverSettings.themeStyle;
         localStorage.setItem(THEME_MODE_KEY, themeMode);
-        localStorage.setItem(THEME_STYLE_KEY, themeStyle);
         applyThemeMode(themeMode);
+    }
+    if (serverSettings?.themeStyle) {
+        themeStyle = serverSettings.themeStyle;
+        localStorage.setItem(THEME_STYLE_KEY, themeStyle);
         applyThemeStyle(themeStyle);
     }
 
@@ -152,7 +182,7 @@ export async function initThemeSettings({ apiBase, modeGroupName = "theme-mode",
         styleSelect.value = themeStyle;
     }
 
-    updateStatusText(statusEl, themeMode, themeStyle, serverSettings ? "（已同步账号）" : "（仅本机）");
+    updateStatusText(statusEl, themeMode, themeStyle, hasServerSettings ? "（已同步账号）" : "（仅本机）");
 
     async function persistAndRender(nextMode, nextStyle) {
         themeMode = normalizeMode(nextMode);

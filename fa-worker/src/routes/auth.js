@@ -107,7 +107,7 @@ function normalizeThemeMode(value) {
 
 function normalizeThemeStyle(value) {
 	if (typeof value !== 'string') throw new Error('settings.themeStyle must be a string');
-	if (!['glass', 'antique'].includes(value)) {
+	if (!['glass', 'antique', 'ocean', 'sunset', 'forest', 'rose', 'slate', 'aurora'].includes(value)) {
 		throw new Error('settings.themeStyle is invalid');
 	}
 	return value;
@@ -154,17 +154,19 @@ async function readProfileFromD1(env, uid) {
 
 	if (!row) return null;
 
-	return {
+	const settings = {};
+	if (row.theme_mode) settings.themeMode = row.theme_mode;
+	if (row.theme_style) settings.themeStyle = row.theme_style;
+
+	const profile = {
 		nickname: row.nickname ?? undefined,
 		avatar: row.avatar ?? undefined,
 		bio: row.bio ?? undefined,
 		intro: row.intro ?? undefined,
 		links: parseJsonSafe(row.links, undefined),
-		settings: {
-			themeMode: row.theme_mode ?? undefined,
-			themeStyle: row.theme_style ?? undefined,
-		},
 	};
+	if (Object.keys(settings).length > 0) profile.settings = settings;
+	return profile;
 }
 
 async function upsertProfileToD1(env, uid, profile) {
@@ -391,6 +393,10 @@ export async function handleUpdateProfile(request, env) {
 	const profileFromUsers = parseObjectSafe(row.profile, {});
 	const profileFromD1 = await readProfileFromD1(env, uid);
 	let profile = { ...profileFromUsers, ...(profileFromD1 || {}) };
+	profile.settings = {
+		...parseObjectSafe(profileFromUsers.settings, {}),
+		...parseObjectSafe(profileFromD1?.settings, {}),
+	};
 
 	if (patch.nickname !== undefined) profile.nickname = patch.nickname;
 	if (patch.avatar !== undefined) profile.avatar = patch.avatar;
@@ -449,7 +455,14 @@ export async function handleMe(request, env) {
 
 	const profileFromUsers = parseObjectSafe(user.profile, {});
 	const profileFromD1 = (await readProfileFromD1(env, uid)) || profileFromUsers;
-	const profile = { ...profileFromUsers, ...profileFromD1 };
+	const profile = {
+		...profileFromUsers,
+		...profileFromD1,
+		settings: {
+			...parseObjectSafe(profileFromUsers.settings, {}),
+			...parseObjectSafe(profileFromD1?.settings, {}),
+		},
+	};
 
 	// Backfill once so old users instantly get persistent D1 profile rows.
 	await upsertProfileToD1(env, uid, profile);
