@@ -10,7 +10,7 @@ const API_BASE = import.meta.env.PUBLIC_API_BASE;
 
     <section class="glass-panel settings-panel">
         <h2>主题模式</h2>
-        <p class="settings-desc">可选择浅色、深色，或跟随系统。本站当前使用无毛玻璃的简约仿古配色。</p>
+        <p class="settings-desc">可选择浅色、深色，或跟随系统。</p>
 
         <div class="settings-group" role="radiogroup" aria-label="主题模式">
             <label class="settings-option">
@@ -26,6 +26,17 @@ const API_BASE = import.meta.env.PUBLIC_API_BASE;
                 <span>跟随系统</span>
             </label>
         </div>
+
+        <h2>主题风格</h2>
+        <p class="settings-desc">毛玻璃主题沿用 954be36 之前的原版视觉，简约仿古为无毛玻璃样式。</p>
+
+        <label class="settings-select-wrap" for="theme-style-select">
+            <span class="settings-select-label">选择主题</span>
+            <select id="theme-style-select" name="theme-style" class="settings-select">
+                <option value="glass">原版毛玻璃</option>
+                <option value="antique">简约仿古</option>
+            </select>
+        </label>
 
         <p id="theme-status" class="settings-status"></p>
     </section>

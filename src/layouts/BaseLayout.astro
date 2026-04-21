@@ -16,11 +16,13 @@ const API_BASE = import.meta.env.PUBLIC_API_BASE;
             (() => {
                 try {
                     const mode = localStorage.getItem("cf-theme-mode") || "system";
+                    const style = localStorage.getItem("cf-theme-style") || "glass";
                     const prefersDark =
                         typeof window.matchMedia === "function" &&
                         window.matchMedia("(prefers-color-scheme: dark)").matches;
                     const isDark = mode === "dark" || (mode === "system" && prefersDark);
                     if (isDark) document.documentElement.classList.add("dark-theme");
+                    document.documentElement.classList.add(style === "antique" ? "theme-antique" : "theme-glass");
                 } catch {
                     // ignore
                 }
@@ -101,14 +103,21 @@ const API_BASE = import.meta.env.PUBLIC_API_BASE;
                     slot="icon"
                     class="w-5 h-5 shrink-0"
                     viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="1.6"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
                 >
-                    <path
-                        d="M10.33 2.45c.39-1.01 1.95-1.01 2.34 0l.52 1.33c.13.33.44.56.8.61l1.42.2c1.08.15 1.56 1.49.78 2.26l-1.02 1c-.26.25-.37.62-.31.97l.24 1.41c.18 1.07-.95 1.89-1.92 1.38l-1.27-.67a1.2 1.2 0 0 0-1.12 0l-1.27.67c-.97.51-2.1-.31-1.92-1.38l.24-1.41c.06-.35-.05-.72-.31-.97l-1.02-1c-.78-.77-.3-2.11.78-2.26l1.42-.2c.36-.05.67-.28.8-.61l.52-1.33z"
-                        fill="none"
-                        stroke="currentColor"
-                        stroke-width="1.6"
-                    ></path>
-                    <circle cx="12" cy="7.8" r="1.8" fill="none" stroke="currentColor" stroke-width="1.6"></circle>
+                    <path d="M5 6.25h6"></path>
+                    <path d="M13 6.25h6"></path>
+                    <circle cx="10.5" cy="6.25" r="1.75"></circle>
+                    <path d="M5 12h10"></path>
+                    <path d="M17 12h2"></path>
+                    <circle cx="15.25" cy="12" r="1.75"></circle>
+                    <path d="M5 17.75h4"></path>
+                    <path d="M11 17.75h8"></path>
+                    <circle cx="9.25" cy="17.75" r="1.75"></circle>
                 </svg>
             </SidebarLink>
         </aside>

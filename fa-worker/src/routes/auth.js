@@ -1,6 +1,15 @@
 import * as tools from '../utils/tools.js';
 import { requireLogin } from '../utils/authGuard.js';
 
+async function runSafeAlter(env, sql) {
+	try {
+		await env.DB.prepare(sql).run();
+	} catch (err) {
+		const msg = String(err?.message || err || '');
+		if (!/duplicate column|already exists/i.test(msg)) throw err;
+	}
+}
+
 async function ensureUserProfilesTable(env) {
 	await env.DB.prepare(
 		`
@@ -11,11 +20,16 @@ async function ensureUserProfilesTable(env) {
 			bio TEXT,
 			intro TEXT,
 			links TEXT,
+			theme_mode TEXT,
+			theme_style TEXT,
 			updated_at INTEGER NOT NULL,
 			FOREIGN KEY (uid) REFERENCES users(uid) ON DELETE CASCADE
 		)
 		`,
 	).run();
+
+	await runSafeAlter(env, `ALTER TABLE user_profiles ADD COLUMN theme_mode TEXT`);
+	await runSafeAlter(env, `ALTER TABLE user_profiles ADD COLUMN theme_style TEXT`);
 }
 
 function parseJsonSafe(value, fallback) {
@@ -91,6 +105,14 @@ function normalizeThemeMode(value) {
 	return value;
 }
 
+function normalizeThemeStyle(value) {
+	if (typeof value !== 'string') throw new Error('settings.themeStyle must be a string');
+	if (!['glass', 'antique'].includes(value)) {
+		throw new Error('settings.themeStyle is invalid');
+	}
+	return value;
+}
+
 function normalizeSettings(value) {
 	if (value === undefined) return undefined;
 	if (!value || typeof value !== 'object' || Array.isArray(value)) {
@@ -99,6 +121,7 @@ function normalizeSettings(value) {
 
 	const settings = {};
 	if ('themeMode' in value) settings.themeMode = normalizeThemeMode(value.themeMode);
+	if ('themeStyle' in value) settings.themeStyle = normalizeThemeStyle(value.themeStyle);
 	return settings;
 }
 
@@ -121,7 +144,7 @@ async function readProfileFromD1(env, uid) {
 	await ensureUserProfilesTable(env);
 	const row = await env.DB.prepare(
 		`
-		SELECT nickname, avatar, bio, intro, links
+		SELECT nickname, avatar, bio, intro, links, theme_mode, theme_style
 		FROM user_profiles
 		WHERE uid=?
 		`,
@@ -137,21 +160,28 @@ async function readProfileFromD1(env, uid) {
 		bio: row.bio ?? undefined,
 		intro: row.intro ?? undefined,
 		links: parseJsonSafe(row.links, undefined),
+		settings: {
+			themeMode: row.theme_mode ?? undefined,
+			themeStyle: row.theme_style ?? undefined,
+		},
 	};
 }
 
 async function upsertProfileToD1(env, uid, profile) {
 	await ensureUserProfilesTable(env);
+	const settings = parseObjectSafe(profile.settings, {});
 	await env.DB.prepare(
 		`
-		INSERT INTO user_profiles (uid, nickname, avatar, bio, intro, links, updated_at)
-		VALUES (?, ?, ?, ?, ?, ?, ?)
+		INSERT INTO user_profiles (uid, nickname, avatar, bio, intro, links, theme_mode, theme_style, updated_at)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
 		ON CONFLICT(uid) DO UPDATE SET
 			nickname=excluded.nickname,
 			avatar=excluded.avatar,
 			bio=excluded.bio,
 			intro=excluded.intro,
 			links=excluded.links,
+			theme_mode=excluded.theme_mode,
+			theme_style=excluded.theme_style,
 			updated_at=excluded.updated_at
 		`,
 	)
@@ -162,6 +192,8 @@ async function upsertProfileToD1(env, uid, profile) {
 			profile.bio ?? null,
 			profile.intro ?? null,
 			profile.links === undefined ? null : JSON.stringify(profile.links),
+			settings.themeMode ?? null,
+			settings.themeStyle ?? null,
 			Date.now(),
 		)
 		.run();
@@ -190,7 +222,12 @@ export async function handleRegister(request, env) {
 	}
 
 	const { hash, salt } = await tools.hashPassword(password);
-	const profile = { nickname: username, avatar: null, roles: ['user'], settings: { themeMode: 'system' } };
+	const profile = {
+		nickname: username,
+		avatar: null,
+		roles: ['user'],
+		settings: { themeMode: 'system', themeStyle: 'glass' },
+	};
 
 	try {
 		await env.DB.prepare(

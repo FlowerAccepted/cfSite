@@ -1,8 +1,14 @@
 :root {
     --bg-image: url("https://cdn.jsdmirror.com/gh/FlowerAccepted/gh-src-for-cfsite-dns@main/background.png");
+    --page-bg: #f2fff8;
+    --surface-1: rgba(255, 255, 255, 0.2);
+    --surface-2: rgba(255, 255, 255, 0.28);
+    --surface-3: rgba(255, 255, 255, 0.36);
     --glass-bg: rgba(255, 255, 255, 0.2);
     --glass-border: rgba(255, 255, 255, 0.1);
     --text-color: #333;
+    --text-muted: rgba(51, 51, 51, 0.76);
+    --accent-color: #00c781;
     --shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
     --basic-href: #00e187d0;
     --blur-sz: 4px;
@@ -14,9 +20,15 @@
     --br-color: #666d;
 }
 .dark-theme {
+    --page-bg: #07150f;
+    --surface-1: rgba(0, 70, 50, 0.22);
+    --surface-2: rgba(0, 49, 35, 0.3);
+    --surface-3: rgba(0, 60, 43, 0.42);
     --glass-bg: rgba(0, 70, 50, 0.2);
     --glass-border: rgba(0, 70, 50, 0.1);
     --text-color: #fafbff;
+    --text-muted: rgba(250, 251, 255, 0.76);
+    --accent-color: #6cf0be;
     --shadow: 0 4px 6px rgba(255, 255, 255, 0.1);
     --nglass-bg: #000000;
     --nglass-front: #003e25d0;
@@ -1468,7 +1480,7 @@ hr {
 }
 
 /* ===== 简约仿古主题（无毛玻璃） ===== */
-:root {
+:root.theme-antique {
     --bg-image: none;
     --page-bg: #f4efe2;
     --surface-1: #fbf7ec;
@@ -1490,7 +1502,7 @@ hr {
     --br-color: #b7a58a;
 }
 
-.dark-theme {
+:root.theme-antique.dark-theme {
     --page-bg: #201912;
     --surface-1: #2a2118;
     --surface-2: #352a1f;
@@ -1510,98 +1522,98 @@ hr {
     --br-color: #6a553a;
 }
 
-body {
+.theme-antique body {
     background: var(--page-bg);
     color: var(--text-color);
 }
 
-.background {
+.theme-antique .background {
     background-image: none;
     background: radial-gradient(1200px 600px at 20% -10%, rgba(196, 166, 119, 0.16), transparent 70%),
         radial-gradient(900px 500px at 95% 10%, rgba(156, 120, 71, 0.14), transparent 75%),
         var(--page-bg);
 }
 
-.glass-sidebar,
-.glass-panel,
-.glass-btn,
-.glass-input,
-.list-panel,
-.list-btn {
+.theme-antique .glass-sidebar,
+.theme-antique .glass-panel,
+.theme-antique .glass-btn,
+.theme-antique .glass-input,
+.theme-antique .list-panel,
+.theme-antique .list-btn {
     backdrop-filter: none !important;
     -webkit-backdrop-filter: none !important;
 }
 
-.glass-sidebar,
-.glass-panel,
-.glass-btn,
-.glass-input,
-.list-panel,
-.list-btn,
-.content {
+.theme-antique .glass-sidebar,
+.theme-antique .glass-panel,
+.theme-antique .glass-btn,
+.theme-antique .glass-input,
+.theme-antique .list-panel,
+.theme-antique .list-btn,
+.theme-antique .content {
     border-color: var(--glass-border) !important;
     box-shadow: var(--shadow);
 }
 
-.glass-sidebar,
-.glass-panel,
-.glass-btn,
-.glass-input,
-.list-panel {
+.theme-antique .glass-sidebar,
+.theme-antique .glass-panel,
+.theme-antique .glass-btn,
+.theme-antique .glass-input,
+.theme-antique .list-panel {
     background: var(--surface-1);
 }
 
-.content {
+.theme-antique .content {
     background: var(--surface-2);
     border: 1px solid var(--glass-border);
 }
 
-.nav-left h1,
-.nav-right,
-.left-nav a,
-.basic-href,
-.link-btn,
-.list-btn,
-.glass-btn {
+.theme-antique .nav-left h1,
+.theme-antique .nav-right,
+.theme-antique .left-nav a,
+.theme-antique .basic-href,
+.theme-antique .link-btn,
+.theme-antique .list-btn,
+.theme-antique .glass-btn {
     color: var(--text-color);
 }
 
-.basic-href,
-#intro-render a,
-#intro-preview a {
+.theme-antique .basic-href,
+.theme-antique #intro-render a,
+.theme-antique #intro-preview a {
     color: var(--basic-href);
     border-bottom-color: rgba(122, 88, 48, 0.35);
 }
 
-.glass-btn:hover,
-.list-btn:hover,
-.link-btn:hover,
-.category:hover,
-.list-panel:hover {
+.theme-antique .glass-btn:hover,
+.theme-antique .list-btn:hover,
+.theme-antique .link-btn:hover,
+.theme-antique .category:hover,
+.theme-antique .list-panel:hover {
     animation: none !important;
     transform: none !important;
 }
 
-.list-panel {
+.theme-antique .list-panel {
     background: var(--surface-2);
 }
 
-.list-btn {
+.theme-antique .list-btn {
     background: var(--surface-3);
     color: var(--text-color);
 }
 
-input::-webkit-input-placeholder,
-input::-moz-placeholder,
-input:-ms-input-placeholder {
+.theme-antique input::-webkit-input-placeholder,
+.theme-antique input::-moz-placeholder,
+.theme-antique input:-ms-input-placeholder {
     color: var(--text-muted);
 }
 
-.back-to-top {
+.theme-antique .back-to-top {
     background: var(--right-tools-bg);
 }
 
-.dark-theme .background {
+.theme-antique.dark-theme .background {
     background: radial-gradient(1200px 600px at 20% -10%, rgba(184, 143, 82, 0.12), transparent 70%),
         radial-gradient(900px 500px at 95% 10%, rgba(146, 107, 54, 0.14), transparent 75%),
         var(--page-bg);
@@ -1636,6 +1648,33 @@ input:-ms-input-placeholder {
 
 .settings-option input {
     accent-color: var(--accent-color);
+}
+
+.settings-select-wrap {
+    display: grid;
+    gap: 8px;
+    margin-top: 16px;
+}
+
+.settings-select-label {
+    font-size: 14px;
+    color: var(--text-muted);
+}
+
+.settings-select {
+    width: 100%;
+    max-width: 320px;
+    padding: 10px 12px;
+    border: 1px solid var(--glass-border);
+    border-radius: 8px;
+    background: var(--surface-2);
+    color: var(--text-color);
+    box-shadow: var(--shadow);
+    outline: none;
+}
+
+.settings-select:focus {
+    border-color: var(--accent-color);
 }
 
 .settings-status {
