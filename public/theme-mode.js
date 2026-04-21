@@ -58,6 +58,16 @@ function styleClassName(style) {
     return `${STYLE_CLASS_PREFIX}${normalizeStyle(style)}`;
 }
 
+function normalizeApiBase(apiBase) {
+    if (typeof apiBase !== "string") return "";
+    return apiBase.trim().replace(/\/+$/, "");
+}
+
+function apiUrl(apiBase, path) {
+    const base = normalizeApiBase(apiBase);
+    return `${base}${path}`;
+}
+
 function expandStyleClasses(style) {
     const next = normalizeStyle(style);
     if (next.endsWith("-flat")) {
@@ -103,9 +113,8 @@ function extractServerThemeSettings(data) {
 }
 
 async function fetchUserThemeSettings(apiBase) {
-    if (!apiBase) return null;
     try {
-        const res = await fetch(`${apiBase}/api/me`, { credentials: "include" });
+        const res = await fetch(apiUrl(apiBase, "/api/me"), { credentials: "include" });
         if (!res.ok) return null;
         const data = await res.json();
         return extractServerThemeSettings(data);
@@ -115,9 +124,8 @@ async function fetchUserThemeSettings(apiBase) {
 }
 
 async function saveUserThemeSettings(apiBase, { themeMode, themeStyle }) {
-    if (!apiBase) return false;
     try {
-        const res = await fetch(`${apiBase}/api/update-profile`, {
+        const res = await fetch(apiUrl(apiBase, "/api/update-profile"), {
             method: "POST",
             credentials: "include",
             headers: { "Content-Type": "application/json" },
