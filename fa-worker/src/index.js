@@ -124,6 +124,8 @@ export default {
       res = await auth.handleLogout(request, env);
     else if (request.method === 'GET' && path === '/api/me')
       res = await auth.handleMe(request, env);
+    else if (request.method === 'GET' && path === '/api/user')
+      res = await auth.handlePublicUser(request, env);
     else if (request.method === 'GET' && (path === '' || path === '/'))
       res = new Response('OK');
     else

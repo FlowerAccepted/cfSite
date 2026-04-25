@@ -1303,6 +1303,7 @@ export function initWhoami() {
     const goLoginBtn = document.getElementById("go-login");
 
     const avatarEl = document.getElementById("avatar");
+    const avatarEditBtn = document.getElementById("avatar-edit-btn");
     const nicknameEl = document.getElementById("nickname");
     const usernameEl = document.getElementById("username");
 
@@ -2170,6 +2171,16 @@ export function initWhoami() {
     });
 
     bioDisplayEl?.addEventListener("click", enterBioEditMode);
+    avatarEditBtn?.addEventListener("click", async () => {
+        const current = avatarEl?.getAttribute("src") || "";
+        const value = window.prompt("输入头像图片外链（http/https），留空可清空头像", current);
+        if (value === null) return;
+        const nextAvatar = value.trim();
+        const updated = await updateProfile({ avatar: nextAvatar || null });
+        if (!updated) return;
+        if (avatarEl) avatarEl.src = updated.avatar || DEFAULT_AVATAR;
+        showIntroSavedToast("头像已更新");
+    });
     bioCancelBtn?.addEventListener("click", exitBioEditMode);
     bioSaveBtn?.addEventListener("click", async () => {
         if (!bioInputEl) return;

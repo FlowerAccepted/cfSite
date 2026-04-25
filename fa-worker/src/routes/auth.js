@@ -494,3 +494,49 @@ export async function handleMe(request, env) {
 		{ headers: { 'Content-Type': 'application/json' } },
 	);
 }
+
+/* ================= 公开用户资料 ================= */
+export async function handlePublicUser(request, env) {
+	const url = new URL(request.url);
+	const uidRaw = url.searchParams.get('uid') || '';
+	if (!/^\d+$/.test(uidRaw)) {
+		return new Response('Invalid uid', { status: 400 });
+	}
+
+	const uid = Number(uidRaw);
+	const user = await env.DB.prepare(
+		`
+    SELECT uid, username, profile
+    FROM users WHERE uid=?
+    `,
+	)
+		.bind(uid)
+		.first();
+
+	if (!user) {
+		return new Response('User not found', { status: 404 });
+	}
+
+	const profileFromUsers = parseObjectSafe(user.profile, {});
+	const profileFromD1 = (await readProfileFromD1(env, uid)) || profileFromUsers;
+	const mergedProfile = {
+		...profileFromUsers,
+		...profileFromD1,
+	};
+
+	const publicProfile = {
+		nickname: mergedProfile.nickname ?? user.username,
+		avatar: mergedProfile.avatar ?? null,
+		bio: mergedProfile.bio ?? '',
+		intro: mergedProfile.intro ?? '',
+	};
+
+	return new Response(
+		JSON.stringify({
+			uid: user.uid,
+			username: user.username,
+			profile: publicProfile,
+		}),
+		{ headers: { 'Content-Type': 'application/json' } },
+	);
+}

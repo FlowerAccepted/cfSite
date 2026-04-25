@@ -1,0 +1,37 @@
+---
+import BaseLayout from "../layouts/BaseLayout.astro";
+const API_BASE = import.meta.env.PUBLIC_API_BASE;
+---
+
+<BaseLayout title="用户主页 - FAc's Site" mainClass="whoami-main">
+    <section id="profile-card" class="glass-panel hidden">
+        <div class="flex items-center gap-4">
+            <img id="avatar" class="h-20 w-20 rounded-full" alt="用户头像" />
+            <div>
+                <h2 id="nickname" class="text-xl font-bold"></h2>
+                <p id="username" class="text-sm opacity-70"></p>
+            </div>
+        </div>
+
+        <div class="mt-4">
+            <p id="bio-display" class="mt-1"></p>
+        </div>
+
+        <h1 id="intro-label" class="mt-4">个人简介</h1>
+        <section id="intro-view" class="mt-2">
+            <div id="intro-render" class="leading-relaxed"></div>
+        </section>
+    </section>
+
+    <section id="user-not-found" class="glass-panel hidden">
+        <h1>未找到该用户</h1>
+        <p class="opacity-75">请检查链接是否正确。</p>
+    </section>
+
+    <script define:vars={{ API_BASE }}>
+        window.__USER_API_BASE__ = API_BASE;
+    </script>
+    <script type="module">
+        import("/scripts/user.js").then(({ initUserPage }) => initUserPage());
+    </script>
+</BaseLayout>
