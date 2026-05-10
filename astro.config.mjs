@@ -6,7 +6,7 @@ import tailwindcss from '@tailwindcss/vite';
 
 // https://astro.build/config
 export default defineConfig({
-  output: 'static', // 静态模式（原 hybrid 已移除，static 现在行为相同）
+  output: 'server',
   adapter: node({
     mode: 'standalone'
   }),

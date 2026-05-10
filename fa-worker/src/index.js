@@ -1,6 +1,7 @@
 import * as auth from './routes/auth.js';
 
 const WRITE_METHODS = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
+const ALLOWED_METHODS = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'];
 
 function parseAllowedOrigins(env = {}) {
   const raw = String(env.CORS_ALLOW_ORIGINS || env.ALLOWED_ORIGINS || '')
@@ -94,6 +95,9 @@ export default {
         });
       }
 
+      const requestHeaders = request.headers.get('Access-Control-Request-Headers');
+      const allowHeaders = requestHeaders || 'Content-Type, Authorization';
+
       return new Response(null, {
         status: 204,
         headers: {
@@ -103,8 +107,9 @@ export default {
                 'Access-Control-Allow-Credentials': 'true',
               }
             : {}),
-          'Access-Control-Allow-Methods': 'GET,POST,OPTIONS',
-          'Access-Control-Allow-Headers': 'Content-Type',
+          'Access-Control-Allow-Methods': ALLOWED_METHODS.join(','),
+          'Access-Control-Allow-Headers': allowHeaders,
+          'Access-Control-Max-Age': '600',
           Vary: 'Origin',
         },
       });
