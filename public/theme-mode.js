@@ -118,17 +118,28 @@ function extractServerThemeSettings(data) {
 }
 
 async function fetchUserThemeSettings(apiBase) {
+    let sawUnauthorized = false;
     for (const base of apiBasesWithFallback(apiBase)) {
         try {
             const res = await fetch(apiUrl(base, "/api/me"), { credentials: "include" });
+            if (res.status === 401) {
+                sawUnauthorized = true;
+                continue;
+            }
             if (!res.ok) continue;
             const data = await res.json();
-            return extractServerThemeSettings(data);
+            return {
+                authenticated: true,
+                settings: extractServerThemeSettings(data),
+            };
         } catch {
             // Try next candidate.
         }
     }
-    return null;
+    return {
+        authenticated: !sawUnauthorized,
+        settings: null,
+    };
 }
 
 async function saveUserThemeSettings(apiBase, { themeMode, themeStyle }) {
@@ -145,6 +156,7 @@ async function saveUserThemeSettings(apiBase, { themeMode, themeStyle }) {
                     },
                 }),
             });
+            if (res.status === 401) return "guest";
             if (res.ok) return true;
         } catch {
             // Try next candidate.
@@ -187,7 +199,8 @@ export async function initThemeMode({ apiBase } = {}) {
         });
     }
 
-    const serverSettings = await fetchUserThemeSettings(apiBase);
+    const serverState = await fetchUserThemeSettings(apiBase);
+    const serverSettings = serverState?.settings;
     if (!serverSettings) return;
 
     if (serverSettings.themeMode && serverSettings.themeMode !== themeMode) {
@@ -212,7 +225,9 @@ export async function initThemeSettings({ apiBase, modeGroupName = "theme-mode",
     let themeMode = readMode();
     let themeStyle = readStyle();
 
-    const serverSettings = await fetchUserThemeSettings(apiBase);
+    const serverState = await fetchUserThemeSettings(apiBase);
+    const serverSettings = serverState?.settings;
+    const isGuest = serverState?.authenticated === false;
     const hasServerSettings = Boolean(serverSettings?.themeMode || serverSettings?.themeStyle);
     if (serverSettings?.themeMode) {
         themeMode = serverSettings.themeMode;
@@ -235,7 +250,12 @@ export async function initThemeSettings({ apiBase, modeGroupName = "theme-mode",
         styleSelect.value = themeStyle;
     }
 
-    updateStatusText(statusEl, themeMode, themeStyle, hasServerSettings ? "（已同步账号）" : "（仅本机）");
+    updateStatusText(
+        statusEl,
+        themeMode,
+        themeStyle,
+        hasServerSettings ? "（已同步账号）" : isGuest ? "（游客模式，仅本机）" : "（仅本机）",
+    );
 
     async function persistAndRender(nextMode, nextStyle) {
         themeMode = normalizeMode(nextMode);
@@ -246,9 +266,19 @@ export async function initThemeSettings({ apiBase, modeGroupName = "theme-mode",
         applyThemeMode(themeMode);
         applyThemeStyle(themeStyle);
 
+        if (isGuest) {
+            updateStatusText(statusEl, themeMode, themeStyle, "（游客模式，仅本机）");
+            return;
+        }
+
         updateStatusText(statusEl, themeMode, themeStyle, "（保存中）");
         const synced = await saveUserThemeSettings(apiBase, { themeMode, themeStyle });
-        updateStatusText(statusEl, themeMode, themeStyle, synced ? "（已同步账号）" : "（仅本机）");
+        updateStatusText(
+            statusEl,
+            themeMode,
+            themeStyle,
+            synced === true ? "（已同步账号）" : synced === "guest" ? "（游客模式，仅本机）" : "（仅本机）",
+        );
     }
 
     for (const radio of modeRadios) {
