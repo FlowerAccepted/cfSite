@@ -1,63 +1,7 @@
 ---
-export const prerender = false;
-
 import BaseLayout from "../../layouts/BaseLayout.astro";
-import { ArticleService } from "../../services/articleService";
-import { getDatabase } from "../../utils/db";
-import type { Article } from "../../types/article";
-import { generateStableArticleSlug } from "../../utils/urlGenerator";
 
-const user = Astro.locals.user;
-if (!user) {
-  return Astro.redirect("/login");
-}
-
-const pageParam = Astro.url.searchParams.get("page");
-const page = Math.max(1, parseInt(pageParam ?? "1", 10) || 1);
-const PAGE_SIZE = 12;
-
-const db = getDatabase();
-const articleService = new ArticleService(db);
-
-let articles: Article[] = [];
-let total = 0;
-let totalPages = 1;
-
-try {
-  const result = articleService.listArticles({
-    page,
-    pageSize: PAGE_SIZE,
-    authorUid: user.uid,
-    sortBy: "updatedAt",
-    sortOrder: "desc",
-  });
-  articles = result.articles;
-  total = result.total;
-  totalPages = result.totalPages;
-} catch {
-  articles = [];
-  total = 0;
-  totalPages = 1;
-}
-
-function buildUrl(targetPage: number): string {
-  if (targetPage <= 1) return "/article/mine";
-  return `/article/mine?page=${targetPage}`;
-}
-
-function formatDate(date: Date): string {
-  return new Intl.DateTimeFormat("zh-CN", {
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-  }).format(date instanceof Date ? date : new Date(date));
-}
-
-function buildExcerpt(content: string): string {
-  return content.replace(/[#*`>\-_\[\]()!]/g, "").replace(/\s+/g, " ").trim().slice(0, 160);
-}
+const API_BASE = import.meta.env.PUBLIC_API_BASE;
 ---
 
 <BaseLayout title="我的文章 - FAc's Site">
@@ -69,84 +13,165 @@ function buildExcerpt(content: string): string {
       </div>
       <a href="/article/_new" class="glass-btn mine-create-btn">写新文章</a>
     </div>
-    <p class="mine-count" aria-live="polite">共 {total} 篇文章</p>
+    <p class="mine-count" aria-live="polite" id="articleCount">加载中...</p>
   </section>
 
-  <section class="mine-list" aria-label="我的文章列表">
-    {articles.length > 0 ? (
-      <div class="mine-grid">
-        {articles.map((article) => {
-          const viewUrl = `/a/${article.authorUid}/${generateStableArticleSlug(article.id)}`;
-          const editUrl = `${viewUrl}?edit`;
-          const excerpt = buildExcerpt(article.content);
-          return (
-            <article class="mine-card glass-panel">
-              <div class="mine-card-top">
-                <div class="mine-card-heading">
-                  <a href={viewUrl} class="mine-card-title-link">
-                    <h2 class="mine-card-title">{article.title}</h2>
-                  </a>
-                  <div class="mine-card-badges" aria-label="文章状态">
-                    <span class={`mine-badge ${article.published ? "mine-badge--published" : "mine-badge--draft"}`}>
-                      {article.published ? "已发布" : "草稿"}
-                    </span>
-                    {article.externalUrl && (
-                      <span class="mine-badge mine-badge--external">外链</span>
-                    )}
-                  </div>
-                </div>
-                {excerpt && <p class="mine-card-excerpt">{excerpt}</p>}
-              </div>
-
-              {article.categories && article.categories.length > 0 && (
-                <div class="mine-card-categories" aria-label="文章分类">
-                  {article.categories.map((category) => (
-                    <a href={`/plaza?category=${category.id}`} class="mine-category-chip">
-                      {category.name}
-                    </a>
-                  ))}
-                </div>
-              )}
-
-              <div class="mine-card-footer">
-                <div class="mine-card-meta">
-                  <span>创建于 {formatDate(article.createdAt)}</span>
-                  <span>更新于 {formatDate(article.updatedAt)}</span>
-                </div>
-                <div class="mine-card-actions">
-                  <a href={viewUrl} class="glass-btn mine-action-btn">查看</a>
-                  <a href={editUrl} class="glass-btn mine-action-btn">编辑</a>
-                </div>
-              </div>
-            </article>
-          );
-        })}
-      </div>
-    ) : (
-      <div class="mine-empty glass-panel" role="status">
-        <h2>你还没有文章</h2>
-        <p>先写第一篇吧，草稿和已发布文章都会出现在这里。</p>
-        <a href="/article/_new" class="glass-btn mine-empty-btn">去写文章</a>
-      </div>
-    )}
+  <section class="mine-list" aria-label="我的文章列表" id="mineContent">
+    <div class="mine-loading glass-panel" style="text-align: center; padding: 2rem;">加载中...</div>
   </section>
 
-  {totalPages > 1 && (
-    <nav class="mine-pagination glass-panel" aria-label="分页导航">
-      {page > 1 ? (
-        <a href={buildUrl(page - 1)} class="glass-btn mine-page-btn">上一页</a>
-      ) : (
-        <span class="mine-page-btn mine-page-btn--disabled" aria-disabled="true">上一页</span>
-      )}
-      <span class="mine-page-status">第 {page} / {totalPages} 页</span>
-      {page < totalPages ? (
-        <a href={buildUrl(page + 1)} class="glass-btn mine-page-btn">下一页</a>
-      ) : (
-        <span class="mine-page-btn mine-page-btn--disabled" aria-disabled="true">下一页</span>
-      )}
-    </nav>
-  )}
+  <nav class="mine-pagination glass-panel" id="minePagination" style="display: none;">
+    <button class="glass-btn mine-page-btn" id="prevBtn">上一页</button>
+    <span class="mine-page-status" id="pageStatus"></span>
+    <button class="glass-btn mine-page-btn" id="nextBtn">下一页</button>
+  </nav>
 </BaseLayout>
+
+<script define:vars={{ API_BASE }}>
+  const PAGE_SIZE = 12;
+  let currentPage = 1;
+  let totalPages = 1;
+  let userId = null;
+
+  function formatDate(date) {
+    return new Intl.DateTimeFormat("zh-CN", {
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+    }).format(new Date(date));
+  }
+
+  function buildExcerpt(content) {
+    return content.replace(/[#*`>\-_\[\]()!]/g, "").replace(/\s+/g, " ").trim().slice(0, 160);
+  }
+
+  function generateStableArticleSlug(id) {
+    return `article-${id}`.substring(0, 100).toLowerCase();
+  }
+
+  function renderArticleCard(article) {
+    const viewUrl = `/a/${article.authorUid}/${generateStableArticleSlug(article.id)}`;
+    const editUrl = `${viewUrl}?edit`;
+    const excerpt = buildExcerpt(article.content);
+    
+    const categoriesHtml = article.categories && article.categories.length > 0
+      ? `<div class="mine-card-categories">
+          ${article.categories.map(cat => 
+            `<a href="/plaza?category=${cat.id}" class="mine-category-chip">${cat.name}</a>`
+          ).join('')}
+         </div>`
+      : '';
+
+    return `
+      <article class="mine-card glass-panel">
+        <div class="mine-card-top">
+          <div class="mine-card-heading">
+            <a href="${viewUrl}" class="mine-card-title-link">
+              <h2 class="mine-card-title">${article.title}</h2>
+            </a>
+            <div class="mine-card-badges">
+              <span class="mine-badge ${article.published ? 'mine-badge--published' : 'mine-badge--draft'}">
+                ${article.published ? '已发布' : '草稿'}
+              </span>
+              ${article.externalUrl ? '<span class="mine-badge mine-badge--external">外链</span>' : ''}
+            </div>
+          </div>
+          ${excerpt ? `<p class="mine-card-excerpt">${excerpt}</p>` : ''}
+        </div>
+        ${categoriesHtml}
+        <div class="mine-card-footer">
+          <div class="mine-card-meta">
+            <span>创建于 ${formatDate(article.createdAt)}</span>
+            <span>更新于 ${formatDate(article.updatedAt)}</span>
+          </div>
+          <div class="mine-card-actions">
+            <a href="${viewUrl}" class="glass-btn mine-action-btn">查看</a>
+            <a href="${editUrl}" class="glass-btn mine-action-btn">编辑</a>
+          </div>
+        </div>
+      </article>
+    `;
+  }
+
+  async function loadArticles(page = 1) {
+    try {
+      const userRes = await fetch(`${API_BASE}/api/me`, {
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+      });
+
+      if (!userRes.ok) {
+        if (userRes.status === 401) {
+          window.location.href = "/login";
+          return;
+        }
+        throw new Error("获取用户信息失败");
+      }
+
+      const user = await userRes.json();
+      userId = user.uid;
+
+      // 调用本地 API 获取用户的文章列表
+      const articlesRes = await fetch(`/api/articles?page=${page}&pageSize=${PAGE_SIZE}&authorUid=${userId}`, {
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+      });
+
+      if (!articlesRes.ok) {
+        throw new Error(`获取文章列表失败 (${articlesRes.status})`);
+      }
+
+      const data = await articlesRes.json();
+      const { articles, total, totalPages: pages } = data;
+      currentPage = page;
+      totalPages = pages;
+
+      // 更新文章计数
+      document.getElementById("articleCount").textContent = `共 ${total} 篇文章`;
+
+      if (articles.length === 0) {
+        document.getElementById("mineContent").innerHTML = `
+          <div class="mine-empty glass-panel" role="status">
+            <h2>你还没有文章</h2>
+            <p>先写第一篇吧，草稿和已发布文章都会出现在这里。</p>
+            <a href="/article/_new" class="glass-btn mine-empty-btn">去写文章</a>
+          </div>
+        `;
+        document.getElementById("minePagination").style.display = "none";
+      } else {
+        const articlesHtml = articles.map(renderArticleCard).join("");
+        document.getElementById("mineContent").innerHTML = `<div class="mine-grid">${articlesHtml}</div>`;
+
+        // 更新分页
+        if (totalPages > 1) {
+          document.getElementById("pageStatus").textContent = `第 ${page} / ${totalPages} 页`;
+          document.getElementById("prevBtn").disabled = page <= 1;
+          document.getElementById("nextBtn").disabled = page >= totalPages;
+          document.getElementById("prevBtn").onclick = () => loadArticles(page - 1);
+          document.getElementById("nextBtn").onclick = () => loadArticles(page + 1);
+          document.getElementById("minePagination").style.display = "flex";
+        } else {
+          document.getElementById("minePagination").style.display = "none";
+        }
+      }
+    } catch (error) {
+      console.error("加载文章失败:", error);
+      document.getElementById("articleCount").textContent = "加载失败";
+      document.getElementById("mineContent").innerHTML = `
+        <div class="mine-empty glass-panel" role="status">
+          <h2>加载失败</h2>
+          <p>${error.message}</p>
+          <a href="/article/_new" class="glass-btn mine-empty-btn">去写文章</a>
+        </div>
+      `;
+    }
+  }
+
+  // 页面加载
+  loadArticles(1);
+</script>
 
 <style>
   .mine-header,
