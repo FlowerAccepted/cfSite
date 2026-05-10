@@ -1,0 +1,106 @@
+---
+/**
+ * 404 Not Found Error Page
+ *
+ * Displayed when a requested resource does not exist.
+ * Requirements: 3.5
+ */
+
+import BaseLayout from "../layouts/BaseLayout.astro";
+
+const title = "404 - 页面未找到";
+---
+
+<BaseLayout title={`${title} - FAc's Site`}>
+  <section class="error-page glass-panel" aria-labelledby="error-heading">
+    <div class="error-code" aria-hidden="true">404</div>
+    <h1 id="error-heading" class="error-title">页面未找到</h1>
+    <p class="error-message">
+      您访问的页面不存在，可能已被删除或链接有误。
+    </p>
+    <div class="error-actions">
+      <a href="/" class="glass-btn error-btn-primary">返回首页</a>
+      <a href="/plaza" class="glass-btn error-btn-secondary">浏览文章广场</a>
+    </div>
+  </section>
+</BaseLayout>
+
+<style>
+  .error-page {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 4rem 2rem;
+    max-width: 560px;
+    margin: 4rem auto;
+    gap: 1.25rem;
+  }
+
+  .error-code {
+    font-size: 6rem;
+    font-weight: 900;
+    line-height: 1;
+    color: var(--accent-color);
+    opacity: 0.85;
+    letter-spacing: -0.04em;
+  }
+
+  .error-title {
+    margin: 0;
+    font-size: 1.75rem;
+    font-weight: 700;
+    color: var(--text-color);
+  }
+
+  .error-message {
+    margin: 0;
+    font-size: 1rem;
+    color: var(--text-muted);
+    line-height: 1.6;
+    max-width: 380px;
+  }
+
+  .error-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+    justify-content: center;
+    margin-top: 0.5rem;
+  }
+
+  .error-btn-primary {
+    color: var(--accent-color);
+    border-color: var(--accent-color);
+    font-weight: 600;
+    text-decoration: none;
+  }
+
+  .error-btn-secondary {
+    color: var(--text-muted);
+    text-decoration: none;
+  }
+
+  @media (max-width: 480px) {
+    .error-code {
+      font-size: 4.5rem;
+    }
+
+    .error-title {
+      font-size: 1.4rem;
+    }
+
+    .error-actions {
+      flex-direction: column;
+      align-items: stretch;
+    }
+
+    .error-btn-primary,
+    .error-btn-secondary {
+      text-align: center;
+      justify-content: center;
+    }
+  }
+</style>

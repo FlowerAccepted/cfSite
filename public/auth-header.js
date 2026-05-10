@@ -62,6 +62,11 @@ export async function initAuthHeader(API_BASE) {
     whoamiLink.href = "/whoami";
     whoamiLink.textContent = "个人中心";
 
+    const myArticlesLink = document.createElement("a");
+    myArticlesLink.className = "list-btn block px-4 py-2 text-center hover:bg-white/10";
+    myArticlesLink.href = "/article/mine";
+    myArticlesLink.textContent = "我的文章";
+
     const settingsLink = document.createElement("a");
     settingsLink.className = "list-btn block px-4 py-2 text-center hover:bg-white/10";
     settingsLink.href = "/settings";
@@ -72,7 +77,7 @@ export async function initAuthHeader(API_BASE) {
     logoutLink.href = "/logout";
     logoutLink.textContent = "退出登录";
 
-    menu.append(whoamiLink, settingsLink, logoutLink);
+    menu.append(whoamiLink, myArticlesLink, settingsLink, logoutLink);
     root.append(img, menu);
     el.append(root);
 }

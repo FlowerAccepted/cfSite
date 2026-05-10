@@ -63,9 +63,14 @@ function normalizeApiBase(apiBase) {
     return apiBase.trim().replace(/\/+$/, "");
 }
 
-function apiUrl(apiBase, path) {
-    const base = normalizeApiBase(apiBase);
+function apiUrl(base, path) {
     return `${base}${path}`;
+}
+
+function apiBasesWithFallback(apiBase) {
+    const normalized = normalizeApiBase(apiBase);
+    const bases = normalized ? [normalized, ""] : [""];
+    return [...new Set(bases)];
 }
 
 function expandStyleClasses(style) {
@@ -113,33 +118,39 @@ function extractServerThemeSettings(data) {
 }
 
 async function fetchUserThemeSettings(apiBase) {
-    try {
-        const res = await fetch(apiUrl(apiBase, "/api/me"), { credentials: "include" });
-        if (!res.ok) return null;
-        const data = await res.json();
-        return extractServerThemeSettings(data);
-    } catch {
-        return null;
+    for (const base of apiBasesWithFallback(apiBase)) {
+        try {
+            const res = await fetch(apiUrl(base, "/api/me"), { credentials: "include" });
+            if (!res.ok) continue;
+            const data = await res.json();
+            return extractServerThemeSettings(data);
+        } catch {
+            // Try next candidate.
+        }
     }
+    return null;
 }
 
 async function saveUserThemeSettings(apiBase, { themeMode, themeStyle }) {
-    try {
-        const res = await fetch(apiUrl(apiBase, "/api/update-profile"), {
-            method: "POST",
-            credentials: "include",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-                settings: {
-                    themeMode: normalizeMode(themeMode),
-                    themeStyle: normalizeStyle(themeStyle),
-                },
-            }),
-        });
-        return res.ok;
-    } catch {
-        return false;
+    for (const base of apiBasesWithFallback(apiBase)) {
+        try {
+            const res = await fetch(apiUrl(base, "/api/update-profile"), {
+                method: "POST",
+                credentials: "include",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    settings: {
+                        themeMode: normalizeMode(themeMode),
+                        themeStyle: normalizeStyle(themeStyle),
+                    },
+                }),
+            });
+            if (res.ok) return true;
+        } catch {
+            // Try next candidate.
+        }
     }
+    return false;
 }
 
 export function applyThemeMode(mode) {

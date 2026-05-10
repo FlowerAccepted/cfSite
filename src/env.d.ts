@@ -2,6 +2,6 @@
 
 declare namespace App {
   interface Locals {
-    user?: { loggedIn: true } | null;
+    user?: { loggedIn: true; uid: string } | null;
   }
 }

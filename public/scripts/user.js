@@ -1,4 +1,4 @@
-import { marked, Renderer } from "https://cdn.jsdmirror.com/npm/marked/lib/marked.esm.js";
+import { ExtendedRenderer, renderExtendedMarkdown } from "/scripts/markdown-renderer.js";
 
 const DEFAULT_BIO = "这个人很懒，什么都没写。";
 const DEFAULT_INTRO = "这个人很懒，连个人简介都没写。";
@@ -6,6 +6,9 @@ const DEFAULT_AVATAR =
     "https://cdn.jsdmirror.com/gh/FlowerAccepted/gh-src-for-cfsite-dns@main/defult_avatar.png";
 
 function parseUidFromPath() {
+    // 优先使用服务器端传递的 uid
+    if (window.__USER_UID__) return window.__USER_UID__;
+    
     const m = window.location.pathname.match(/^\/user\/(\d+)\/?$/);
     if (m) return m[1];
     const q = new URLSearchParams(window.location.search).get("uid");
@@ -15,15 +18,6 @@ function parseUidFromPath() {
 function apiUrl(path) {
     const base = String(window.__USER_API_BASE__ || "").trim().replace(/\/+$/, "");
     return `${base}${path}`;
-}
-
-class LinkRenderer extends Renderer {
-    // @ts-ignore
-    link({ href, tokens }) {
-        // @ts-ignore
-        const text = tokens.map((t) => t.text || "").join("");
-        return `<a href="${href}" class="basic-href">${text}</a>`;
-    }
 }
 
 export async function initUserPage() {
@@ -58,9 +52,9 @@ export async function initUserPage() {
         if (usernameEl) usernameEl.textContent = `@${data.username || uid}`;
         if (bioEl) bioEl.textContent = p.bio?.trim() || DEFAULT_BIO;
 
-        const renderer = new LinkRenderer();
+        const renderer = new ExtendedRenderer();
         const intro = String(p.intro || "").trim() || DEFAULT_INTRO;
-        if (introRenderEl) introRenderEl.innerHTML = marked(intro, { renderer });
+        if (introRenderEl) introRenderEl.innerHTML = renderExtendedMarkdown(intro, renderer);
 
         profileCard?.classList.remove("hidden");
     } catch {

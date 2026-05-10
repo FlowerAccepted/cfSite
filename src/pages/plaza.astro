@@ -1,0 +1,610 @@
+---
+export const prerender = false;
+
+import BaseLayout from "../layouts/BaseLayout.astro";
+import ArticleCard from "../components/ArticleCard.astro";
+import SearchBar from "../components/SearchBar.astro";
+import { ArticleService } from "../services/articleService";
+import { CategoryService } from "../services/categoryService";
+import { SearchService } from "../services/searchService";
+import { getDatabase } from "../utils/db";
+import { getUserFromToken } from "../utils/jwtAuth";
+import type { Article, Category } from "../types/article";
+
+// --- URL params ---
+const url = Astro.url;
+const searchQuery = url.searchParams.get("q") ?? "";
+const categoryFilter = url.searchParams.get("category") ?? "";
+const pageParam = url.searchParams.get("page");
+const page = Math.max(1, parseInt(pageParam ?? "1", 10) || 1);
+const PAGE_SIZE = 12;
+
+// --- Get current user for edit button ---
+const authHeader = Astro.request.headers.get("Authorization");
+const cookieHeader = Astro.request.headers.get("Cookie");
+const currentUser = getUserFromToken(authHeader, cookieHeader);
+
+// --- Services ---
+const db = getDatabase();
+const articleService = new ArticleService(db);
+const categoryService = new CategoryService(db);
+const searchService = new SearchService(db);
+
+// --- Fetch categories for filter UI ---
+let allCategories: Category[] = [];
+try {
+  allCategories = categoryService.getAllCategories();
+} catch {
+  allCategories = [];
+}
+
+// --- Fetch articles (search or list) ---
+let articles: Article[] = [];
+let totalArticles = 0;
+let totalPages = 1;
+let searchError = "";
+let highlightText = "";
+
+if (searchQuery) {
+  highlightText = searchQuery;
+  try {
+    const result = await searchService.searchArticles(searchQuery, {
+      page,
+      pageSize: PAGE_SIZE,
+      searchFields: ["title", "content"],
+      caseSensitive: false,
+      categories: categoryFilter ? [categoryFilter] : undefined,
+    });
+    articles = result.articles.map((hit) => hit.article);
+    totalArticles = result.total;
+    totalPages = Math.ceil(totalArticles / PAGE_SIZE);
+  } catch (err: any) {
+    searchError = err?.message ?? "搜索出错";
+    articles = [];
+    totalArticles = 0;
+    totalPages = 1;
+  }
+} else {
+  try {
+    const result = articleService.listArticles({
+      page,
+      pageSize: PAGE_SIZE,
+      published: true,
+      categories: categoryFilter ? [categoryFilter] : undefined,
+      sortBy: "createdAt",
+      sortOrder: "desc",
+    });
+    articles = result.articles;
+    totalArticles = result.total;
+    totalPages = result.totalPages;
+  } catch {
+    articles = [];
+    totalArticles = 0;
+    totalPages = 1;
+  }
+}
+
+// --- Helpers for pagination URLs ---
+function buildUrl(p: number): string {
+  const params = new URLSearchParams();
+  if (searchQuery) params.set("q", searchQuery);
+  if (categoryFilter) params.set("category", categoryFilter);
+  if (p > 1) params.set("page", String(p));
+  const qs = params.toString();
+  return qs ? `/plaza?${qs}` : "/plaza";
+}
+
+function buildExcerpt(content: string): string {
+  return content.replace(/[#*`>\-_\[\]()!]/g, "").slice(0, 200);
+}
+
+function getVisiblePageNumbers(total: number, current: number): number[] {
+  const count = Math.min(total, 7);
+  return Array.from({ length: count }, (_, i) => {
+    if (total <= 7 || current <= 4) return i + 1;
+    if (current >= total - 3) return total - 6 + i;
+    return current - 3 + i;
+  });
+}
+
+// --- Cache-Control headers ---
+if (!searchQuery) {
+  Astro.response.headers.set(
+    "Cache-Control",
+    "public, max-age=300, s-maxage=300, stale-while-revalidate=30"
+  );
+} else {
+  Astro.response.headers.set("Cache-Control", "no-store");
+}
+
+// --- Active category name ---
+const activeCategory = allCategories.find((c) => c.id === categoryFilter);
+---
+
+<BaseLayout title="文章广场 - FAc's Site">
+  <section class="plaza-header glass-panel">
+    <div class="plaza-header-row">
+      <div class="plaza-header-text">
+        <h1 class="plaza-title">文章广场</h1>
+        <p class="plaza-subtitle">
+          {searchQuery
+            ? `搜索「${searchQuery}」的结果`
+            : activeCategory
+              ? `分类：${activeCategory.name}`
+              : "浏览所有已发布文章"}
+        </p>
+      </div>
+      {currentUser && (
+        <a href="/article/_new" class="glass-btn plaza-edit-btn" aria-label="创建新文章">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <line x1="12" y1="5" x2="12" y2="19" />
+            <line x1="5" y1="12" x2="19" y2="12" />
+          </svg>
+          写文章
+        </a>
+      )}
+    </div>
+  </section>
+
+  <section class="plaza-search glass-panel" aria-label="文章搜索">
+    <SearchBar initialQuery={searchQuery} />
+  </section>
+
+  {allCategories.length > 0 && (
+    <section class="plaza-categories glass-panel" aria-label="分类筛选">
+      <div class="plaza-categories-list">
+        <a
+          href={buildUrl(1).replace(/[&?]category=[^&]*/g, "").replace(/[?&]$/, "") || "/plaza"}
+          class={`plaza-category-chip ${!categoryFilter ? "plaza-category-chip--active" : ""}`}
+          aria-current={!categoryFilter ? "true" : undefined}
+        >
+          全部
+        </a>
+        {allCategories.map((cat) => {
+          const isActive = cat.id === categoryFilter;
+          const catParams = new URLSearchParams();
+          if (searchQuery) catParams.set("q", searchQuery);
+          catParams.set("category", cat.id);
+          const catUrl = `/plaza?${catParams.toString()}`;
+          return (
+            <a
+              href={catUrl}
+              class={`plaza-category-chip ${isActive ? "plaza-category-chip--active" : ""}`}
+              aria-current={isActive ? "true" : undefined}
+            >
+              {cat.name}
+              {cat.articleCount !== undefined && (
+                <span class="plaza-category-count">{cat.articleCount}</span>
+              )}
+            </a>
+          );
+        })}
+      </div>
+    </section>
+  )}
+
+  {searchError && (
+    <section class="plaza-error glass-panel" role="alert" aria-live="polite">
+      <svg
+        class="plaza-error-icon"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="1.8"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        aria-hidden="true"
+      >
+        <circle cx="12" cy="12" r="9" />
+        <line x1="12" y1="8" x2="12" y2="12" />
+        <circle cx="12" cy="16" r="0.5" fill="currentColor" stroke="none" />
+      </svg>
+      <span>{searchError}</span>
+    </section>
+  )}
+
+  <section class="plaza-articles" aria-label="文章列表">
+    {articles.length > 0 ? (
+      <div class="plaza-articles-grid">
+        {articles.map((article) => {
+          const excerpt = buildExcerpt(article.content);
+          const cardArticle = {
+            id: article.id,
+            title: article.title,
+            excerpt,
+            author: article.author ?? { uid: article.authorUid, username: article.authorUid },
+            categories: article.categories ?? [],
+            createdAt: article.createdAt,
+            updatedAt: article.updatedAt,
+          };
+          return (
+            <ArticleCard article={cardArticle} highlightText={highlightText || undefined} />
+          );
+        })}
+      </div>
+    ) : (
+      !searchError && (
+        <div class="plaza-empty glass-panel" role="status">
+          <svg
+            class="plaza-empty-icon"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.5"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            aria-hidden="true"
+          >
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+            <polyline points="14 2 14 8 20 8" />
+            <line x1="9" y1="13" x2="15" y2="13" />
+            <line x1="9" y1="17" x2="12" y2="17" />
+          </svg>
+          <p class="plaza-empty-text">
+            {searchQuery ? `没有找到与「${searchQuery}」匹配的文章` : "暂无已发布的文章"}
+          </p>
+          {(searchQuery || categoryFilter) && (
+            <a href="/plaza" class="glass-btn plaza-empty-reset">清除筛选条件</a>
+          )}
+        </div>
+      )
+    )}
+  </section>
+
+  {totalPages > 1 && (
+    <nav class="plaza-pagination glass-panel" aria-label="分页导航">
+      <div class="plaza-pagination-info">
+        第 {page} / {totalPages} 页，共 {totalArticles} 篇文章
+      </div>
+      <div class="plaza-pagination-controls">
+        {page > 1 ? (
+          <a href={buildUrl(page - 1)} class="glass-btn plaza-page-btn" aria-label="上一页">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <polyline points="15 18 9 12 15 6" />
+            </svg>
+            上一页
+          </a>
+        ) : (
+          <span class="plaza-page-btn plaza-page-btn--disabled" aria-disabled="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <polyline points="15 18 9 12 15 6" />
+            </svg>
+            上一页
+          </span>
+        )}
+
+        <div class="plaza-page-numbers" aria-label="页码">
+          {getVisiblePageNumbers(totalPages, page).map((p) => {
+            const isCurrent = p === page;
+            return (
+              <a
+                href={buildUrl(p)}
+                class={`plaza-page-number ${isCurrent ? "plaza-page-number--active" : ""}`}
+                aria-current={isCurrent ? "page" : undefined}
+                aria-label={`第 ${p} 页`}
+              >
+                {p}
+              </a>
+            );
+          })}
+        </div>
+
+        {page < totalPages ? (
+          <a href={buildUrl(page + 1)} class="glass-btn plaza-page-btn" aria-label="下一页">
+            下一页
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <polyline points="9 18 15 12 9 6" />
+            </svg>
+          </a>
+        ) : (
+          <span class="plaza-page-btn plaza-page-btn--disabled" aria-disabled="true">
+            下一页
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <polyline points="9 18 15 12 9 6" />
+            </svg>
+          </span>
+        )}
+      </div>
+    </nav>
+  )}
+
+  {totalPages <= 1 && totalArticles > 0 && (
+    <p class="plaza-count-summary" aria-live="polite">
+      共 {totalArticles} 篇文章
+    </p>
+  )}
+</BaseLayout>
+
+<style>
+  .plaza-header {
+    margin-bottom: 1.25rem;
+  }
+
+  .plaza-header-row {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+  }
+
+  .plaza-header-text {
+    flex: 1;
+  }
+
+  .plaza-title {
+    margin: 0 0 0.25rem 0;
+    font-size: 1.75rem;
+    font-weight: 700;
+    color: var(--text-color);
+  }
+
+  .plaza-subtitle {
+    margin: 0;
+    font-size: 0.9rem;
+    color: var(--text-muted);
+  }
+
+  .plaza-edit-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.5rem 1rem;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--accent-color);
+    border-color: var(--accent-color);
+    white-space: nowrap;
+  }
+
+  .plaza-edit-btn svg {
+    width: 16px;
+    height: 16px;
+  }
+
+  .plaza-search {
+    margin-bottom: 1.25rem;
+  }
+
+  .plaza-categories {
+    margin-bottom: 1.25rem;
+    padding: 0.85rem 1.25rem;
+  }
+
+  .plaza-categories-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    align-items: center;
+  }
+
+  .plaza-category-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    padding: 0.25rem 0.75rem;
+    border-radius: 999px;
+    font-size: 0.83rem;
+    font-weight: 500;
+    color: var(--text-muted);
+    background: var(--glass-bg);
+    border: 1px solid var(--glass-border);
+    text-decoration: none;
+    transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+    white-space: nowrap;
+  }
+
+  .plaza-category-chip:hover {
+    color: var(--accent-color);
+    border-color: var(--accent-color);
+  }
+
+  .plaza-category-chip:focus-visible {
+    outline: 2px solid var(--accent-color);
+    outline-offset: 2px;
+    color: var(--accent-color);
+    border-color: var(--accent-color);
+  }
+
+  .plaza-category-chip--active {
+    background: var(--nglass-front, rgba(0, 225, 135, 0.18));
+    color: var(--accent-color);
+    border-color: var(--accent-color);
+    font-weight: 600;
+  }
+
+  .plaza-category-count {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 1.2em;
+    padding: 0 0.3em;
+    height: 1.2em;
+    border-radius: 999px;
+    font-size: 0.75em;
+    background: var(--nglass-front, rgba(0, 225, 135, 0.18));
+    color: var(--accent-color);
+  }
+
+  .plaza-error {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    margin-bottom: 1.25rem;
+    padding: 0.75rem 1.25rem;
+    color: #e05252;
+    background: rgba(224, 82, 82, 0.08);
+    border-color: rgba(224, 82, 82, 0.22);
+    font-size: 0.9rem;
+  }
+
+  .dark-theme .plaza-error {
+    color: #ff8a8a;
+    background: rgba(224, 82, 82, 0.12);
+    border-color: rgba(224, 82, 82, 0.28);
+  }
+
+  .plaza-error-icon {
+    width: 18px;
+    height: 18px;
+    flex-shrink: 0;
+  }
+
+  .plaza-articles {
+    margin-bottom: 1.25rem;
+  }
+
+  .plaza-articles-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 1rem;
+  }
+
+  .plaza-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 1rem;
+    padding: 3rem 2rem;
+    text-align: center;
+  }
+
+  .plaza-empty-icon {
+    width: 48px;
+    height: 48px;
+    color: var(--text-muted);
+    opacity: 0.5;
+  }
+
+  .plaza-empty-text {
+    margin: 0;
+    font-size: 1rem;
+    color: var(--text-muted);
+  }
+
+  .plaza-empty-reset {
+    font-size: 0.88rem;
+    color: var(--accent-color);
+    border-color: var(--accent-color);
+  }
+
+  .plaza-pagination {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 1rem 1.5rem;
+    margin-bottom: 1.25rem;
+  }
+
+  .plaza-pagination-info {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+  }
+
+  .plaza-pagination-controls {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  .plaza-page-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    padding: 0.35rem 0.85rem;
+    font-size: 0.88rem;
+    font-weight: 500;
+    color: var(--text-color);
+    text-decoration: none;
+    border-radius: 8px;
+  }
+
+  .plaza-page-btn svg {
+    width: 14px;
+    height: 14px;
+    flex-shrink: 0;
+  }
+
+  .plaza-page-btn--disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+    background: var(--glass-bg);
+    border: 1px solid var(--glass-border);
+    border-radius: 8px;
+  }
+
+  .plaza-page-numbers {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+  }
+
+  .plaza-page-number {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 2rem;
+    height: 2rem;
+    padding: 0 0.4rem;
+    border-radius: 6px;
+    font-size: 0.88rem;
+    font-weight: 500;
+    color: var(--text-muted);
+    text-decoration: none;
+    background: var(--glass-bg);
+    border: 1px solid var(--glass-border);
+    transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+  }
+
+  .plaza-page-number:hover {
+    color: var(--accent-color);
+    border-color: var(--accent-color);
+  }
+
+  .plaza-page-number:focus-visible {
+    outline: 2px solid var(--accent-color);
+    outline-offset: 2px;
+    color: var(--accent-color);
+    border-color: var(--accent-color);
+  }
+
+  .plaza-page-number--active {
+    background: var(--nglass-front, rgba(0, 225, 135, 0.18));
+    color: var(--accent-color);
+    border-color: var(--accent-color);
+    font-weight: 700;
+  }
+
+  .plaza-count-summary {
+    text-align: center;
+    font-size: 0.82rem;
+    color: var(--text-muted);
+    margin: 0 0 1rem 0;
+  }
+
+  @media (max-width: 640px) {
+    .plaza-header-row {
+      flex-direction: column;
+      align-items: stretch;
+    }
+
+    .plaza-edit-btn {
+      align-self: flex-start;
+    }
+
+    .plaza-articles-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .plaza-pagination-controls {
+      gap: 0.35rem;
+    }
+
+    .plaza-page-numbers {
+      gap: 0.15rem;
+    }
+  }
+</style>

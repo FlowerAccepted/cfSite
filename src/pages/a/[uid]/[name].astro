@@ -1,0 +1,595 @@
+---
+/**
+ * Article Detail Page
+ *
+ * Dynamic route: /a/[uid]/[name]
+ * - Uses getStaticPaths() for SSG of common (published) articles
+ * - Falls back to SSR for remaining articles
+ *
+ * Requirements: 3.1, 3.4, 3.5, 7.2
+ */
+
+import BaseLayout from "../../../layouts/BaseLayout.astro";
+import ExternalContentLoader from "../../../components/ExternalContentLoader.astro";
+import { ArticleService } from "../../../services/articleService";
+import { getDatabase } from "../../../utils/db";
+import { renderMarkdown } from "../../../utils/markdownRenderer";
+import type { Article } from "../../../types/article";
+import { generateStableArticleSlug } from "../../../utils/urlGenerator";
+
+// SSG: pre-generate paths for published articles
+export async function getStaticPaths() {
+  try {
+    const db = getDatabase();
+    const articleService = new ArticleService(db);
+
+    const result = articleService.listArticles({
+      page: 1,
+      pageSize: 500,
+      published: true,
+      sortBy: "createdAt",
+      sortOrder: "desc",
+    });
+
+    return result.articles.map((article) => ({
+      params: {
+        uid: article.authorUid,
+        name: generateStableArticleSlug(article.id),
+      },
+    }));
+  } catch {
+    // If DB is unavailable at build time, return empty paths (SSR will handle all)
+    return [];
+  }
+}
+
+// SSR fallback for articles not pre-generated
+export const prerender = false;
+
+const { uid, name } = Astro.params;
+const wantsEdit = Astro.url.searchParams.has("edit");
+
+// Retrieve article by URL parameters
+let article: Article | null = null;
+
+try {
+  const db = getDatabase();
+  const articleService = new ArticleService(db);
+  article = articleService.getArticleByUrl(uid!, name!);
+
+  // Access control: published articles are accessible to all; unpublished only to the author (Req 7.5)
+  if (article) {
+    const currentUserUid = Astro.locals.user?.uid;
+    if (!articleService.canAccessArticle(article, currentUserUid)) {
+      article = null;
+    }
+  }
+} catch {
+  // DB error → treat as not found
+  article = null;
+}
+
+// Return 404 if article not found (Req 3.5)
+if (!article) {
+  return Astro.redirect("/404", 404);
+}
+
+if (wantsEdit) {
+  const currentUserUid = Astro.locals.user?.uid;
+  if (!currentUserUid) {
+    return Astro.redirect("/login");
+  }
+  if (currentUserUid !== article.authorUid) {
+    return Astro.redirect("/403");
+  }
+  return Astro.redirect(`/article/${article.id}/edit`);
+}
+
+// Set Cache-Control headers for published articles (Req 7.1, 7.2)
+// Cache published articles for 1 hour; do not cache drafts
+if (article.published) {
+  Astro.response.headers.set(
+    "Cache-Control",
+    "public, max-age=3600, s-maxage=3600, stale-while-revalidate=60"
+  );
+} else {
+  Astro.response.headers.set("Cache-Control", "private, no-store");
+}
+
+// Render Markdown content to HTML (Req 7.2)
+const renderedContent = renderMarkdown(article.content);
+
+// Format dates
+function formatDate(date: Date): string {
+  return new Intl.DateTimeFormat("zh-CN", {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(date instanceof Date ? date : new Date(date));
+}
+
+const createdStr = formatDate(article.createdAt);
+const updatedStr = formatDate(article.updatedAt);
+const showUpdated =
+  Math.abs(
+    (article.updatedAt instanceof Date
+      ? article.updatedAt
+      : new Date(article.updatedAt)
+    ).getTime() -
+      (article.createdAt instanceof Date
+        ? article.createdAt
+        : new Date(article.createdAt)
+      ).getTime()
+  ) > 60_000; // show updated time only if more than 1 minute apart
+
+const authorUsername =
+  article.author?.username ?? article.authorUid;
+const authorUid = article.authorUid;
+---
+
+<BaseLayout title={`${article.title} - FAc's Site`}>
+  <article class="article-detail" aria-label={article.title}>
+    <!-- Article header -->
+    <header class="article-detail-header glass-panel">
+      <!-- Title (Req 7.2) -->
+      <h1 class="article-detail-title">{article.title}</h1>
+
+      <!-- Categories (Req 7.2) -->
+      {article.categories && article.categories.length > 0 && (
+        <div class="article-detail-categories" aria-label="文章分类">
+          {article.categories.map((cat) => (
+            <a
+              href={`/plaza?category=${cat.id}`}
+              class="article-detail-category"
+              aria-label={`分类：${cat.name}`}
+            >
+              {cat.name}
+            </a>
+          ))}
+        </div>
+      )}
+
+      <!-- Meta: author + timestamps (Req 7.2) -->
+      <div class="article-detail-meta" aria-label="文章信息">
+        <!-- Author -->
+        <a
+          href={`/user/${authorUid}`}
+          class="article-detail-author"
+          aria-label={`作者：${authorUsername}`}
+        >
+          <svg
+            class="article-detail-meta-icon"
+            viewBox="0 0 24 24"
+            aria-hidden="true"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.8"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <circle cx="12" cy="8" r="4" />
+            <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" />
+          </svg>
+          <span>{authorUsername}</span>
+        </a>
+
+        <!-- Timestamps -->
+        <div class="article-detail-timestamps">
+          <time
+            datetime={
+              article.createdAt instanceof Date
+                ? article.createdAt.toISOString()
+                : new Date(article.createdAt).toISOString()
+            }
+            class="article-detail-time"
+            title={`发布于 ${createdStr}`}
+          >
+            <svg
+              class="article-detail-meta-icon"
+              viewBox="0 0 24 24"
+              aria-hidden="true"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.8"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <circle cx="12" cy="12" r="9" />
+              <path d="M12 7v5l3 3" />
+            </svg>
+            {createdStr}
+          </time>
+
+          {showUpdated && (
+            <time
+              datetime={
+                article.updatedAt instanceof Date
+                  ? article.updatedAt.toISOString()
+                  : new Date(article.updatedAt).toISOString()
+              }
+              class="article-detail-time article-detail-time--updated"
+              title={`更新于 ${updatedStr}`}
+            >
+              <svg
+                class="article-detail-meta-icon"
+                viewBox="0 0 24 24"
+                aria-hidden="true"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.8"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <path d="M21 12a9 9 0 1 1-3.1-6.8" />
+                <path d="M21 3v5h-5" />
+              </svg>
+              更新于 {updatedStr}
+            </time>
+          )}
+        </div>
+
+        <!-- Draft badge for unpublished articles -->
+        {!article.published && (
+          <span class="article-detail-draft-badge" aria-label="草稿">
+            草稿
+          </span>
+        )}
+      </div>
+    </header>
+
+    <!-- Article content (Req 7.2) -->
+    <section class="article-detail-content glass-panel" aria-label="文章内容">
+      {article.externalUrl ? (
+        <!-- External content loader (Req 5.3) -->
+        <ExternalContentLoader
+          url={article.externalUrl}
+          fallbackMessage="外部内容暂时无法加载，请稍后再试。"
+        />
+      ) : (
+        <div
+          class="article-detail-prose prose"
+          set:html={renderedContent}
+        />
+      )}
+    </section>
+
+    <!-- Back to plaza link -->
+    <nav class="article-detail-nav" aria-label="导航">
+      <a href="/plaza" class="glass-btn article-detail-back">
+        <svg
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          aria-hidden="true"
+        >
+          <polyline points="15 18 9 12 15 6" />
+        </svg>
+        返回文章广场
+      </a>
+    </nav>
+  </article>
+</BaseLayout>
+
+<style>
+  /* ── Layout ── */
+  .article-detail {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+    max-width: 860px;
+    margin: 0 auto;
+    width: 100%;
+  }
+
+  /* ── Header ── */
+  .article-detail-header {
+    display: flex;
+    flex-direction: column;
+    gap: 0.85rem;
+    padding: 1.75rem 2rem;
+  }
+
+  .article-detail-title {
+    margin: 0;
+    font-size: 2rem;
+    font-weight: 800;
+    line-height: 1.3;
+    color: var(--text-color);
+    word-break: break-word;
+  }
+
+  /* ── Categories ── */
+  .article-detail-categories {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+  }
+
+  .article-detail-category {
+    display: inline-block;
+    padding: 0.2rem 0.7rem;
+    border-radius: 999px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    background: var(--nglass-front, rgba(0, 225, 135, 0.18));
+    color: var(--accent-color);
+    border: 1px solid var(--glass-border);
+    text-decoration: none;
+    white-space: nowrap;
+    transition: opacity 0.15s ease;
+  }
+
+  .article-detail-category:hover {
+    opacity: 0.8;
+  }
+
+  .article-detail-category:focus-visible {
+    outline: 2px solid var(--accent-color);
+    outline-offset: 2px;
+    opacity: 0.9;
+  }
+
+  /* ── Meta ── */
+  .article-detail-meta {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 1rem;
+    padding-top: 0.75rem;
+    border-top: 1px solid var(--glass-border);
+    font-size: 0.85rem;
+    color: var(--text-muted);
+  }
+
+  .article-detail-author {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    text-decoration: none;
+    color: var(--text-muted);
+    font-weight: 600;
+    transition: color 0.15s ease;
+  }
+
+  .article-detail-author:hover {
+    color: var(--accent-color);
+  }
+
+  .article-detail-author:focus-visible {
+    outline: 2px solid var(--accent-color);
+    outline-offset: 2px;
+    border-radius: 4px;
+    color: var(--accent-color);
+  }
+
+  .article-detail-meta-icon {
+    width: 15px;
+    height: 15px;
+    flex-shrink: 0;
+  }
+
+  .article-detail-timestamps {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    flex-wrap: wrap;
+  }
+
+  .article-detail-time {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    white-space: nowrap;
+  }
+
+  .article-detail-time--updated {
+    opacity: 0.75;
+  }
+
+  .article-detail-draft-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.15rem 0.6rem;
+    border-radius: 999px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    background: rgba(224, 180, 0, 0.15);
+    color: #b8860b;
+    border: 1px solid rgba(224, 180, 0, 0.3);
+    letter-spacing: 0.03em;
+  }
+
+  .dark-theme .article-detail-draft-badge {
+    background: rgba(255, 210, 0, 0.12);
+    color: #ffd700;
+    border-color: rgba(255, 210, 0, 0.25);
+  }
+
+  /* ── Content ── */
+  .article-detail-content {
+    padding: 2rem;
+  }
+
+  .article-detail-prose {
+    color: var(--text-color);
+    line-height: 1.8;
+    font-size: 1rem;
+    word-break: break-word;
+    overflow-x: auto;
+  }
+
+  /* Prose typography */
+  .article-detail-prose :global(h1),
+  .article-detail-prose :global(h2),
+  .article-detail-prose :global(h3),
+  .article-detail-prose :global(h4),
+  .article-detail-prose :global(h5),
+  .article-detail-prose :global(h6) {
+    color: var(--text-color);
+    font-weight: 700;
+    line-height: 1.35;
+    margin: 1.5em 0 0.6em;
+  }
+
+  .article-detail-prose :global(h1) { font-size: 1.75rem; }
+  .article-detail-prose :global(h2) { font-size: 1.45rem; border-bottom: 1px solid var(--glass-border); padding-bottom: 0.3em; }
+  .article-detail-prose :global(h3) { font-size: 1.2rem; }
+  .article-detail-prose :global(h4) { font-size: 1.05rem; }
+
+  .article-detail-prose :global(p) {
+    margin: 0.85em 0;
+    color: var(--text-color);
+  }
+
+  .article-detail-prose :global(a) {
+    color: var(--accent-color);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+    transition: opacity 0.15s ease;
+  }
+
+  .article-detail-prose :global(a:hover) {
+    opacity: 0.8;
+  }
+
+  .article-detail-prose :global(ul),
+  .article-detail-prose :global(ol) {
+    margin: 0.85em 0;
+    padding-left: 1.75em;
+    color: var(--text-color);
+  }
+
+  .article-detail-prose :global(li) {
+    margin: 0.35em 0;
+  }
+
+  .article-detail-prose :global(blockquote) {
+    margin: 1.2em 0;
+    padding: 0.6em 1.2em;
+    border-left: 3px solid var(--accent-color);
+    background: var(--nglass-front, rgba(0, 225, 135, 0.08));
+    border-radius: 0 8px 8px 0;
+    color: var(--text-muted);
+    font-style: italic;
+  }
+
+  .article-detail-prose :global(code) {
+    font-family: ui-monospace, Menlo, Monaco, Consolas, monospace;
+    font-size: 0.88em;
+    padding: 0.15em 0.4em;
+    background: var(--nglass-front, rgba(0, 225, 135, 0.12));
+    border: 1px solid var(--glass-border);
+    border-radius: 4px;
+    color: var(--accent-color);
+  }
+
+  .article-detail-prose :global(pre) {
+    margin: 1.2em 0;
+    padding: 1.1em 1.4em;
+    background: var(--glass-bg);
+    border: 1px solid var(--glass-border);
+    border-radius: 10px;
+    overflow-x: auto;
+    line-height: 1.65;
+  }
+
+  .article-detail-prose :global(pre code) {
+    padding: 0;
+    background: none;
+    border: none;
+    border-radius: 0;
+    color: var(--text-color);
+    font-size: 0.88rem;
+  }
+
+  .article-detail-prose :global(img) {
+    max-width: 100%;
+    height: auto;
+    border-radius: 10px;
+    margin: 0.75em 0;
+    display: block;
+    /* Lazy-load images inside article content */
+    content-visibility: auto;
+  }
+
+  .article-detail-prose :global(hr) {
+    border: none;
+    border-top: 1px solid var(--glass-border);
+    margin: 2em 0;
+  }
+
+  .article-detail-prose :global(table) {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 1.2em 0;
+    font-size: 0.92rem;
+    overflow-x: auto;
+    display: block;
+  }
+
+  .article-detail-prose :global(th),
+  .article-detail-prose :global(td) {
+    padding: 0.55em 0.85em;
+    border: 1px solid var(--glass-border);
+    text-align: left;
+    color: var(--text-color);
+  }
+
+  .article-detail-prose :global(th) {
+    background: var(--nglass-front, rgba(0, 225, 135, 0.1));
+    font-weight: 600;
+  }
+
+  /* ── Navigation ── */
+  .article-detail-nav {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding-bottom: 0.5rem;
+  }
+
+  .article-detail-back {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-size: 0.9rem;
+    color: var(--text-muted);
+    text-decoration: none;
+  }
+
+  .article-detail-back svg {
+    width: 16px;
+    height: 16px;
+    flex-shrink: 0;
+  }
+
+  .article-detail-back:hover {
+    color: var(--accent-color);
+  }
+
+  /* ── Responsive ── */
+  @media (max-width: 640px) {
+    .article-detail-header {
+      padding: 1.25rem 1.1rem;
+    }
+
+    .article-detail-title {
+      font-size: 1.5rem;
+    }
+
+    .article-detail-content {
+      padding: 1.25rem 1.1rem;
+    }
+
+    .article-detail-meta {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 0.5rem;
+    }
+  }
+</style>

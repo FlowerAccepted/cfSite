@@ -4,6 +4,7 @@ const user = Astro.locals.user;
 import "../styles/global.css";
 import SidebarLink from "@/components/SidebarLink.astro";
 const API_BASE = import.meta.env.PUBLIC_API_BASE;
+const currentPath = Astro.url.pathname;
 ---
 
 <!doctype html>
@@ -69,31 +70,35 @@ const API_BASE = import.meta.env.PUBLIC_API_BASE;
 
     <body>
         <div class="background"></div>
-        <header class="top-nav glass-sidebar">
+        <!-- Skip to main content link for keyboard/screen reader users (WCAG 2.4.1) -->
+        <a href="#main-content" class="skip-to-main">跳转到主要内容</a>
+        <header class="top-nav glass-sidebar" role="banner" aria-label="网站导航">
             <div class="nav-left">
-                <a href="/" style="color:var(--text-color)">
+                <a href="/" style="color:var(--text-color)" aria-label="FAc's Site 首页">
                     <h1>
                         <img
                             alt=""
                             src="https://cdn.jsdmirror.com/gh/FlowerAccepted/gh-src-for-cfsite-dns@main/favicon.svg"
                             height="40"
                             width="40"
+                            loading="eager"
                         />
                         FAc's Site
                     </h1>
                 </a>
             </div>
-            <div class="nav-right" id="auth-area"></div>
+            <div class="nav-right" id="auth-area" aria-label="用户操作"></div>
         </header>
-        <aside
+        <nav
             class="group left-nav fixed top-0 left-0 h-screen
 			w-14 hover:w-56
 			duration-200
 			overflow-hidden
 			z-30
 			glass-sidebar"
+            aria-label="主导航"
         >
-            <SidebarLink href="/" label="首页">
+            <SidebarLink href="/" label="首页" active={currentPath === "/"}>
                 <svg
                     slot="icon"
                     class="w-5 h-5 shrink-0"
@@ -107,7 +112,46 @@ const API_BASE = import.meta.env.PUBLIC_API_BASE;
                     ></path>
                 </svg>
             </SidebarLink>
-            <SidebarLink href="/info/" label="公告">
+            <SidebarLink href="/plaza" label="文章广场" active={currentPath === "/plaza"}>
+                <svg
+                    slot="icon"
+                    class="w-5 h-5 shrink-0"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="1.6"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                >
+                    <path d="M6.75 4.75h10.5A1.75 1.75 0 0 1 19 6.5v11a1.75 1.75 0 0 1-1.75 1.75H6.75A1.75 1.75 0 0 1 5 17.5v-11A1.75 1.75 0 0 1 6.75 4.75Z"></path>
+                    <path d="M8.5 8.5h7"></path>
+                    <path d="M8.5 12h7"></path>
+                    <path d="M8.5 15.5h4.5"></path>
+                </svg>
+            </SidebarLink>
+            {user && (
+                <SidebarLink
+                    href="/article/_new"
+                    label="写文章"
+                    active={currentPath === "/article/edit" || currentPath.startsWith("/article/")}
+                >
+                    <svg
+                        slot="icon"
+                        class="w-5 h-5 shrink-0"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="1.6"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                    >
+                        <path d="M12 5v14"></path>
+                        <path d="M5 12h14"></path>
+                        <path d="M20 12a8 8 0 1 1-16 0a8 8 0 0 1 16 0Z"></path>
+                    </svg>
+                </SidebarLink>
+            )}
+            <SidebarLink href="/info/" label="公告" active={currentPath.startsWith("/info")}>
                 <svg
                     slot="icon"
                     class="w-5 h-5 shrink-0"
@@ -119,7 +163,7 @@ const API_BASE = import.meta.env.PUBLIC_API_BASE;
                     </text>
                 </svg>
             </SidebarLink>
-            <SidebarLink href="/settings" label="设置">
+            <SidebarLink href="/settings" label="设置" active={currentPath === "/settings"}>
                 <svg
                     slot="icon"
                     class="w-5 h-5 shrink-0"
@@ -141,15 +185,15 @@ const API_BASE = import.meta.env.PUBLIC_API_BASE;
                     <circle cx="9.25" cy="17.75" r="1.75"></circle>
                 </svg>
             </SidebarLink>
-        </aside>
+        </nav>
 
-        <main class={`content ${mainClass}`.trim()}>
+        <main class={`content ${mainClass}`.trim()} id="main-content" tabindex="-1">
             <slot />
         </main>
         <slot name="overlay" />
-        <button id="back-to-top" class="back-to-top">
-            <span class="back-to-up-arrow"></span>
-            <p class="back-to-up-text">Top</p>
+        <button id="back-to-top" class="back-to-top" aria-label="返回顶部">
+            <span class="back-to-up-arrow" aria-hidden="true"></span>
+            <p class="back-to-up-text" aria-hidden="true">Top</p>
         </button>
         <script type="module" define:vars={{ API_BASE }}>
             import { initAuthHeader } from "/auth-header.js";

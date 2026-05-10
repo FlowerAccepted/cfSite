@@ -1,0 +1,16 @@
+---
+export const prerender = false;
+
+const { entry } = Astro.params;
+
+if (entry === "_new") {
+  const user = Astro.locals.user;
+  if (!user) {
+    return Astro.redirect("/login");
+  }
+
+  return Astro.redirect("/article/edit");
+}
+
+return Astro.redirect("/404", 404);
+---

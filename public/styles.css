@@ -2167,6 +2167,136 @@ hr {
     border-color: var(--accent-color);
 }
 
+/* ===== Accessibility: Screen Reader Utilities ===== */
+
+/* Visually hidden but accessible to screen readers */
+.sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border-width: 0;
+}
+
+/* ===== Accessibility: Focus Styles ===== */
+/*
+ * Provide visible focus indicators for all interactive elements.
+ * WCAG 2.1 SC 2.4.7 requires visible focus for keyboard navigation.
+ */
+
+/* Remove default outline only when we provide our own */
+:focus {
+    outline: none;
+}
+
+/* Visible focus ring for all interactive elements */
+:focus-visible {
+    outline: 2px solid var(--accent-color);
+    outline-offset: 2px;
+    border-radius: 4px;
+}
+
+/* Buttons and links get a slightly larger focus ring */
+a:focus-visible,
+button:focus-visible,
+[role="button"]:focus-visible {
+    outline: 2px solid var(--accent-color);
+    outline-offset: 3px;
+    border-radius: 6px;
+}
+
+/* Inputs and selects */
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible {
+    outline: 2px solid var(--accent-color);
+    outline-offset: 1px;
+    border-color: var(--accent-color);
+    border-radius: 4px;
+}
+
+/* Glass buttons: enhance focus ring visibility */
+.glass-btn:focus-visible {
+    outline: 2px solid var(--accent-color);
+    outline-offset: 2px;
+    box-shadow: 0 0 0 4px rgba(0, 199, 129, 0.2), var(--shadow);
+}
+
+/* Glass inputs */
+.glass-input:focus-visible {
+    outline: 2px solid var(--accent-color);
+    outline-offset: 1px;
+    border-color: var(--accent-color);
+    box-shadow: 0 0 0 3px rgba(0, 199, 129, 0.15), var(--shadow);
+}
+
+/* Skip to main content link (screen reader / keyboard users) */
+.skip-to-main {
+    position: absolute;
+    top: -100%;
+    left: 8px;
+    z-index: 9999;
+    padding: 8px 16px;
+    background: var(--accent-color);
+    color: var(--rev-text-color);
+    font-weight: 700;
+    font-size: 0.9rem;
+    border-radius: 0 0 8px 8px;
+    text-decoration: none;
+    transition: top 0.15s ease;
+}
+
+.skip-to-main:focus {
+    top: 0;
+    outline: 2px solid var(--rev-text-color);
+    outline-offset: 2px;
+}
+
+/* Dark theme focus ring adjustments */
+.dark-theme :focus-visible {
+    outline-color: var(--accent-color);
+}
+
+.dark-theme .glass-btn:focus-visible {
+    box-shadow: 0 0 0 4px rgba(108, 240, 190, 0.25), var(--shadow);
+}
+
+.dark-theme .glass-input:focus-visible {
+    box-shadow: 0 0 0 3px rgba(108, 240, 190, 0.2), var(--shadow);
+}
+
+/* ===== Accessibility: Color Contrast Improvements ===== */
+/*
+ * Ensure text meets WCAG AA contrast ratios:
+ * - Normal text: 4.5:1 minimum
+ * - Large text (18pt / 14pt bold): 3:1 minimum
+ *
+ * The --text-muted color at rgba(51,51,51,0.76) ≈ #666 on white
+ * achieves ~5.7:1 on white backgrounds — passes AA.
+ * On glass backgrounds (rgba(255,255,255,0.2) over white page),
+ * effective background is ~#f0f0f0, giving ~5.3:1 — passes AA.
+ *
+ * The --accent-color #00c781 on white = ~2.8:1 — fails for normal text.
+ * We use accent color only for decorative elements, icons, and large/bold text
+ * (category chips, timestamps) where 3:1 applies, or with underlines for links.
+ *
+ * Links in article content use underline + accent color to be distinguishable.
+ */
+
+/* Ensure links are visually distinguishable from surrounding text */
+.article-detail-prose :global(a),
+.external-content-loader__markdown :global(a) {
+    text-decoration: underline;
+    text-underline-offset: 2px;
+}
+
+/* Improve muted text contrast slightly for readability */
+/* Note: --text-muted is already ~5.3:1 on typical backgrounds */
+
 .settings-status {
     margin-top: 12px;
     color: var(--text-muted);

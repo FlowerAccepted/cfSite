@@ -7,15 +7,38 @@ async function sha256Hex(str) {
 }
 
 export function setupAuth(API_BASE) {
+    function normalizeApiBase(apiBase) {
+        if (typeof apiBase !== "string") return "";
+        return apiBase.trim().replace(/\/+$/, "");
+    }
+
+    function apiBasesWithFallback(apiBase) {
+        const normalized = normalizeApiBase(apiBase);
+        const bases = normalized ? [normalized, ""] : [""];
+        return [...new Set(bases)];
+    }
+
     async function apiFetch(path, options = {}) {
-        return fetch(`${API_BASE}${path}`, {
-            credentials: "include",
-            ...options,
-            headers: {
-                "Content-Type": "application/json",
-                ...(options.headers || {}),
-            },
-        });
+        let lastRes = null;
+        let lastErr = null;
+        for (const base of apiBasesWithFallback(API_BASE)) {
+            try {
+                const res = await fetch(`${base}${path}`, {
+                    credentials: "include",
+                    ...options,
+                    headers: {
+                        "Content-Type": "application/json",
+                        ...(options.headers || {}),
+                    },
+                });
+                lastRes = res;
+                if (res.ok) return res;
+            } catch (err) {
+                lastErr = err;
+            }
+        }
+        if (lastRes) return lastRes;
+        throw lastErr || new Error("api request failed");
     }
 
     window.register = async function () {
@@ -66,13 +89,13 @@ export function setupAuth(API_BASE) {
     };
 
     window.logout = async function () {
-    await apiFetch("/api/logout", {
-        method: "POST",
-        credentials: "include",
-        headers: {
-            "Content-Type": "application/json",
-        },
-    });
-    location.href = "/";
-    }
+        await apiFetch("/api/logout", {
+            method: "POST",
+            credentials: "include",
+            headers: {
+                "Content-Type": "application/json",
+            },
+        });
+        location.href = "/";
+    };
 }

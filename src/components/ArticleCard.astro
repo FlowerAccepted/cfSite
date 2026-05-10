@@ -1,0 +1,319 @@
+---
+import type { Category } from "../types/article.ts";
+import { generateStableArticleSlug } from "../utils/urlGenerator";
+
+interface ArticleCardProps {
+  article: {
+    id: string;
+    title: string;
+    excerpt: string;
+    author: {
+      uid: string;
+      username: string;
+    };
+    categories: Category[];
+    createdAt: Date;
+    updatedAt: Date;
+  };
+  highlightText?: string;
+}
+
+const { article, highlightText } = Astro.props as ArticleCardProps;
+
+function escapeHtml(str: string): string {
+  return str
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+/**
+ * Highlight occurrences of `pattern` in `text`.
+ * Escapes HTML in non-matching segments, wraps matches in <mark>.
+ * Falls back to plain escaped text if the pattern is invalid or empty.
+ */
+function applyHighlight(text: string, pattern: string): string {
+  if (!pattern) return escapeHtml(text);
+  let regex: RegExp;
+  try {
+    regex = new RegExp(`(${pattern})`, "gi");
+  } catch {
+    return escapeHtml(text);
+  }
+
+  const parts = text.split(regex);
+  return parts
+    .map((part, i) => {
+      // Every odd index is a captured match group (the match itself)
+      if (i % 2 === 1) {
+        return `<mark class="article-card-highlight">${escapeHtml(part)}</mark>`;
+      }
+      return escapeHtml(part);
+    })
+    .join("");
+}
+
+const titleHtml = applyHighlight(article.title, highlightText ?? "");
+const excerptHtml = applyHighlight(article.excerpt, highlightText ?? "");
+
+function formatDate(date: Date): string {
+  return new Intl.DateTimeFormat("zh-CN", {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(date instanceof Date ? date : new Date(date));
+}
+
+const createdStr = formatDate(article.createdAt);
+const updatedStr = formatDate(article.updatedAt);
+const articleUrl = `/a/${article.author.uid}/${generateStableArticleSlug(article.id)}`;
+---
+
+<article class="article-card glass-panel">
+  <a href={articleUrl} class="article-card-link" aria-label={`阅读文章：${article.title}`}>
+    <!-- Title -->
+    <h2 class="article-card-title" set:html={titleHtml} />
+
+    <!-- Excerpt -->
+    <p class="article-card-excerpt" set:html={excerptHtml} />
+  </a>
+
+  <!-- Categories -->
+  {article.categories && article.categories.length > 0 && (
+    <div class="article-card-categories" aria-label="文章分类" role="list">
+      {article.categories.map((cat) => (
+        <span class="article-card-category" role="listitem">
+          {cat.name}
+        </span>
+      ))}
+    </div>
+  )}
+
+  <!-- Footer: author + timestamps -->
+  <footer class="article-card-footer">
+    <a
+      href={`/user/${article.author.uid}`}
+      class="article-card-author"
+      aria-label={`作者：${article.author.username}`}
+    >
+      <svg
+        class="article-card-author-icon"
+        viewBox="0 0 24 24"
+        aria-hidden="true"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="1.8"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+      >
+        <circle cx="12" cy="8" r="4" />
+        <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" />
+      </svg>
+      <span>{article.author.username}</span>
+    </a>
+
+    <div class="article-card-timestamps" aria-label="时间信息">
+      <time
+        datetime={article.createdAt instanceof Date ? article.createdAt.toISOString() : new Date(article.createdAt).toISOString()}
+        title={`发布于 ${createdStr}`}
+        class="article-card-time"
+      >
+        <svg
+          class="article-card-time-icon"
+          viewBox="0 0 24 24"
+          aria-hidden="true"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.8"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
+          <circle cx="12" cy="12" r="9" />
+          <path d="M12 7v5l3 3" />
+        </svg>
+        {createdStr}
+      </time>
+
+      {createdStr !== updatedStr && (
+        <time
+          datetime={article.updatedAt instanceof Date ? article.updatedAt.toISOString() : new Date(article.updatedAt).toISOString()}
+          title={`更新于 ${updatedStr}`}
+          class="article-card-time article-card-time--updated"
+        >
+          <svg
+            class="article-card-time-icon"
+            viewBox="0 0 24 24"
+            aria-hidden="true"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.8"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <path d="M21 12a9 9 0 1 1-3.1-6.8" />
+            <path d="M21 3v5h-5" />
+          </svg>
+          {updatedStr}
+        </time>
+      )}
+    </div>
+  </footer>
+</article>
+
+<style>
+  .article-card {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    padding: 1.25rem 1.5rem;
+    border-radius: 12px;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    text-decoration: none;
+    color: var(--text-color);
+  }
+
+  .article-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+  }
+
+  .article-card-link {
+    display: block;
+    text-decoration: none;
+    color: inherit;
+    border-radius: 8px;
+  }
+
+  .article-card-link:focus-visible {
+    outline: 2px solid var(--accent-color);
+    outline-offset: 2px;
+  }
+
+  .article-card-title {
+    margin: 0 0 0.5rem 0;
+    font-size: 1.2rem;
+    font-weight: 700;
+    line-height: 1.4;
+    color: var(--text-color);
+    transition: color 0.15s ease;
+  }
+
+  .article-card-link:hover .article-card-title {
+    color: var(--accent-color);
+  }
+
+  .article-card-excerpt {
+    margin: 0;
+    font-size: 0.92rem;
+    line-height: 1.65;
+    color: var(--text-muted);
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  /* Categories */
+  .article-card-categories {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+  }
+
+  .article-card-category {
+    display: inline-block;
+    padding: 0.15rem 0.6rem;
+    border-radius: 999px;
+    font-size: 0.78rem;
+    font-weight: 600;
+    background: var(--nglass-front, rgba(0, 225, 135, 0.18));
+    color: var(--accent-color);
+    border: 1px solid var(--glass-border);
+    white-space: nowrap;
+  }
+
+  /* Footer */
+  .article-card-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-top: 0.25rem;
+    padding-top: 0.75rem;
+    border-top: 1px solid var(--glass-border);
+    font-size: 0.82rem;
+    color: var(--text-muted);
+  }
+
+  .article-card-author {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    text-decoration: none;
+    color: var(--text-muted);
+    font-weight: 600;
+    transition: color 0.15s ease;
+  }
+
+  .article-card-author:hover {
+    color: var(--accent-color);
+  }
+
+  .article-card-author-icon {
+    width: 15px;
+    height: 15px;
+    flex-shrink: 0;
+  }
+
+  .article-card-timestamps {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+  }
+
+  .article-card-time {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    white-space: nowrap;
+  }
+
+  .article-card-time--updated {
+    opacity: 0.8;
+  }
+
+  .article-card-time-icon {
+    width: 13px;
+    height: 13px;
+    flex-shrink: 0;
+  }
+
+  /* Search highlight mark */
+  :global(.article-card-highlight) {
+    background: rgba(0, 225, 135, 0.28);
+    color: var(--text-color);
+    border-radius: 3px;
+    padding: 0 0.1em;
+    font-weight: 600;
+  }
+
+  .dark-theme :global(.article-card-highlight) {
+    background: rgba(108, 240, 190, 0.22);
+  }
+
+  /* Responsive */
+  @media (max-width: 600px) {
+    .article-card {
+      padding: 1rem 1.1rem;
+    }
+
+    .article-card-footer {
+      flex-direction: column;
+      align-items: flex-start;
+    }
+  }
+</style>

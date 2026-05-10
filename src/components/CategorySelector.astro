@@ -1,0 +1,677 @@
+---
+import type { Category } from "../types/article.ts";
+
+interface CategorySelectorProps {
+  selectedCategories: string[]; // array of category IDs
+  availableCategories: Category[];
+  allowCreate: boolean;
+  name: string; // form field name
+}
+
+const {
+  selectedCategories = [],
+  availableCategories = [],
+  allowCreate = false,
+  name,
+} = Astro.props as CategorySelectorProps;
+
+// Unique ID for this instance to avoid conflicts when multiple selectors are on the page
+const instanceId = `cat-sel-${Math.random().toString(36).slice(2, 9)}`;
+---
+
+<div
+  class="category-selector"
+  id={instanceId}
+  data-name={name}
+  data-allow-create={allowCreate ? "true" : "false"}
+  role="group"
+  aria-label="分类选择"
+>
+  <!-- Hidden inputs for form submission (one per selected category) -->
+  <div class="category-selector__hidden-inputs" aria-hidden="true">
+    {selectedCategories.map((id) => (
+      <input type="hidden" name={name} value={id} data-cat-input />
+    ))}
+  </div>
+
+  <!-- Selected category tags -->
+  <div
+    class="category-selector__tags"
+    aria-label="已选分类"
+    aria-live="polite"
+  >
+    {selectedCategories.map((id) => {
+      const cat = availableCategories.find((c) => c.id === id);
+      const label = cat ? cat.name : id;
+      return (
+        <span
+          class="category-selector__tag"
+          data-cat-id={id}
+          data-cat-label={label}
+          role="listitem"
+        >
+          <span class="category-selector__tag-name">{label}</span>
+          <button
+            type="button"
+            class="category-selector__tag-remove"
+            aria-label={`移除分类：${label}`}
+            data-remove-id={id}
+          >
+            <svg
+              viewBox="0 0 16 16"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              aria-hidden="true"
+            >
+              <line x1="4" y1="4" x2="12" y2="12" />
+              <line x1="12" y1="4" x2="4" y2="12" />
+            </svg>
+          </button>
+        </span>
+      );
+    })}
+  </div>
+
+  <!-- Dropdown trigger + input row -->
+  <div class="category-selector__controls">
+    <button
+      type="button"
+      class="category-selector__toggle glass-btn"
+      aria-haspopup="listbox"
+      aria-expanded="false"
+      aria-controls={`${instanceId}-dropdown`}
+    >
+      <svg
+        class="category-selector__toggle-icon"
+        viewBox="0 0 20 20"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        aria-hidden="true"
+      >
+        <circle cx="10" cy="10" r="8" />
+        <line x1="10" y1="6" x2="10" y2="14" />
+        <line x1="6" y1="10" x2="14" y2="10" />
+      </svg>
+      添加分类
+    </button>
+
+    {allowCreate && (
+      <div class="category-selector__create-row">
+        <input
+          type="text"
+          class="category-selector__create-input glass-input"
+          placeholder="新分类名称…"
+          aria-label="新分类名称"
+          maxlength="100"
+          autocomplete="off"
+        />
+        <button
+          type="button"
+          class="category-selector__create-btn glass-btn"
+          aria-label="创建新分类"
+        >
+          创建
+        </button>
+      </div>
+    )}
+  </div>
+
+  <!-- Dropdown list -->
+  <div
+    id={`${instanceId}-dropdown`}
+    class="category-selector__dropdown glass-panel"
+    role="listbox"
+    aria-multiselectable="true"
+    aria-label="可选分类"
+    hidden
+  >
+    {availableCategories.length === 0 ? (
+      <p class="category-selector__empty">暂无可用分类</p>
+    ) : (
+      availableCategories.map((cat) => {
+        const isSelected = selectedCategories.includes(cat.id);
+        return (
+          <button
+            type="button"
+            class={`category-selector__option${isSelected ? " category-selector__option--selected" : ""}`}
+            role="option"
+            aria-selected={isSelected ? "true" : "false"}
+            data-cat-id={cat.id}
+            data-cat-name={cat.name}
+          >
+            <span class="category-selector__option-check" aria-hidden="true">
+              {isSelected ? (
+                <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="3,8 7,12 13,4" />
+                </svg>
+              ) : null}
+            </span>
+            <span class="category-selector__option-name">{cat.name}</span>
+            {cat.description && (
+              <span class="category-selector__option-desc">{cat.description}</span>
+            )}
+          </button>
+        );
+      })
+    )}
+    <!-- Newly created categories are appended here by JS -->
+  </div>
+</div>
+
+<style>
+  .category-selector {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    position: relative;
+  }
+
+  /* ── Tags ── */
+  .category-selector__tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    min-height: 1.6rem;
+  }
+
+  .category-selector__tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    padding: 0.18rem 0.55rem 0.18rem 0.65rem;
+    border-radius: 999px;
+    font-size: 0.82rem;
+    font-weight: 600;
+    background: var(--nglass-front, rgba(0, 225, 135, 0.18));
+    color: var(--accent-color);
+    border: 1px solid var(--glass-border);
+    white-space: nowrap;
+  }
+
+  .category-selector__tag-name {
+    line-height: 1;
+  }
+
+  .category-selector__tag-remove {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 16px;
+    height: 16px;
+    padding: 0;
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--accent-color);
+    opacity: 0.7;
+    border-radius: 50%;
+    transition: opacity 0.15s ease, background 0.15s ease;
+    flex-shrink: 0;
+  }
+
+  .category-selector__tag-remove:hover {
+    opacity: 1;
+    background: rgba(0, 0, 0, 0.08);
+  }
+
+  .category-selector__tag-remove:focus-visible {
+    opacity: 1;
+    outline: 2px solid var(--accent-color);
+    outline-offset: 1px;
+  }
+
+  .category-selector__tag-remove svg {
+    width: 10px;
+    height: 10px;
+    pointer-events: none;
+  }
+
+  /* ── Controls row ── */
+  .category-selector__controls {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+  }
+
+  .category-selector__toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-size: 0.88rem;
+    padding: 0.3rem 0.75rem;
+    white-space: nowrap;
+  }
+
+  .category-selector__toggle-icon {
+    width: 15px;
+    height: 15px;
+    flex-shrink: 0;
+  }
+
+  /* ── Create row ── */
+  .category-selector__create-row {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    flex: 1;
+    min-width: 0;
+  }
+
+  .category-selector__create-input {
+    flex: 1;
+    min-width: 0;
+    padding: 0.3rem 0.6rem;
+    font-size: 0.88rem;
+    border-radius: 6px;
+    /* override global width: 500px */
+    width: auto !important;
+    box-sizing: border-box;
+  }
+
+  .category-selector__create-btn {
+    font-size: 0.88rem;
+    padding: 0.3rem 0.75rem;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  /* ── Dropdown ── */
+  .category-selector__dropdown {
+    position: absolute;
+    top: calc(100% + 4px);
+    left: 0;
+    z-index: 200;
+    min-width: 220px;
+    max-width: 360px;
+    max-height: 260px;
+    overflow-y: auto;
+    padding: 0.4rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+    border-radius: 10px;
+  }
+
+  .category-selector__dropdown[hidden] {
+    display: none;
+  }
+
+  .category-selector__empty {
+    margin: 0;
+    padding: 0.5rem 0.75rem;
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    text-align: center;
+  }
+
+  /* ── Option ── */
+  .category-selector__option {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.5rem;
+    width: 100%;
+    padding: 0.45rem 0.65rem;
+    background: none;
+    border: none;
+    border-radius: 7px;
+    cursor: pointer;
+    color: var(--text-color);
+    font-size: 0.88rem;
+    text-align: left;
+    transition: background 0.15s ease;
+  }
+
+  .category-selector__option:hover {
+    background: var(--surface-2, rgba(255, 255, 255, 0.28));
+  }
+
+  .category-selector__option:focus-visible {
+    outline: 2px solid var(--accent-color);
+    outline-offset: -2px;
+    background: var(--surface-2, rgba(255, 255, 255, 0.28));
+  }
+
+  .category-selector__option--selected {
+    background: var(--nglass-front, rgba(0, 225, 135, 0.18));
+    color: var(--accent-color);
+    font-weight: 600;
+  }
+
+  .category-selector__option--selected:hover {
+    background: var(--nglass-front, rgba(0, 225, 135, 0.25));
+  }
+
+  .category-selector__option-check {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 16px;
+    height: 16px;
+    flex-shrink: 0;
+    margin-top: 1px;
+  }
+
+  .category-selector__option-check svg {
+    width: 14px;
+    height: 14px;
+  }
+
+  .category-selector__option-name {
+    flex: 1;
+    line-height: 1.3;
+  }
+
+  .category-selector__option-desc {
+    display: block;
+    font-size: 0.76rem;
+    color: var(--text-muted);
+    font-weight: 400;
+    margin-top: 0.1rem;
+    line-height: 1.3;
+  }
+
+  /* Scrollbar styling for dropdown */
+  .category-selector__dropdown::-webkit-scrollbar {
+    width: 5px;
+  }
+  .category-selector__dropdown::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .category-selector__dropdown::-webkit-scrollbar-thumb {
+    background: var(--glass-border);
+    border-radius: 3px;
+  }
+
+  /* Responsive */
+  @media (max-width: 480px) {
+    .category-selector__controls {
+      flex-direction: column;
+      align-items: stretch;
+    }
+
+    .category-selector__toggle {
+      width: 100%;
+      justify-content: center;
+    }
+
+    .category-selector__dropdown {
+      max-width: 100%;
+      right: 0;
+    }
+  }
+</style>
+
+<script>
+  // Self-contained per-instance logic — runs once per CategorySelector on the page.
+  document.querySelectorAll<HTMLElement>(".category-selector").forEach((root) => {
+    const fieldName = root.dataset.name!;
+    const allowCreate = root.dataset.allowCreate === "true";
+
+    const hiddenInputsContainer = root.querySelector<HTMLElement>(
+      ".category-selector__hidden-inputs"
+    )!;
+    const tagsContainer = root.querySelector<HTMLElement>(
+      ".category-selector__tags"
+    )!;
+    const toggleBtn = root.querySelector<HTMLButtonElement>(
+      ".category-selector__toggle"
+    )!;
+    const dropdown = root.querySelector<HTMLElement>(
+      ".category-selector__dropdown"
+    )!;
+    const createInput = root.querySelector<HTMLInputElement>(
+      ".category-selector__create-input"
+    );
+    const createBtn = root.querySelector<HTMLButtonElement>(
+      ".category-selector__create-btn"
+    );
+
+    // ── State ──────────────────────────────────────────────────────────────
+    // Collect initial selected IDs from existing hidden inputs
+    const selectedIds = new Set<string>(
+      Array.from(
+        hiddenInputsContainer.querySelectorAll<HTMLInputElement>(
+          "input[data-cat-input]"
+        )
+      ).map((el) => el.value)
+    );
+
+    // ── Helpers ────────────────────────────────────────────────────────────
+
+    function syncHiddenInputs() {
+      hiddenInputsContainer.innerHTML = "";
+      selectedIds.forEach((id) => {
+        const inp = document.createElement("input");
+        inp.type = "hidden";
+        inp.name = fieldName;
+        inp.value = id;
+        inp.dataset.catInput = "";
+        hiddenInputsContainer.appendChild(inp);
+      });
+    }
+
+    function buildTag(id: string, label: string): HTMLElement {
+      const span = document.createElement("span");
+      span.className = "category-selector__tag";
+      span.dataset.catId = id;
+      span.dataset.catLabel = label;
+      span.setAttribute("role", "listitem");
+
+      const nameSpan = document.createElement("span");
+      nameSpan.className = "category-selector__tag-name";
+      nameSpan.textContent = label;
+
+      const removeBtn = document.createElement("button");
+      removeBtn.type = "button";
+      removeBtn.className = "category-selector__tag-remove";
+      removeBtn.setAttribute("aria-label", `移除分类：${label}`);
+      removeBtn.dataset.removeId = id;
+      removeBtn.innerHTML = `<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><line x1="4" y1="4" x2="12" y2="12"/><line x1="12" y1="4" x2="4" y2="12"/></svg>`;
+      removeBtn.addEventListener("click", () => deselect(id));
+
+      span.appendChild(nameSpan);
+      span.appendChild(removeBtn);
+      return span;
+    }
+
+    function select(id: string, label: string) {
+      if (selectedIds.has(id)) return;
+      selectedIds.add(id);
+      syncHiddenInputs();
+
+      // Add tag
+      tagsContainer.appendChild(buildTag(id, label));
+
+      // Update option in dropdown
+      const option = dropdown.querySelector<HTMLButtonElement>(
+        `[data-cat-id="${CSS.escape(id)}"]`
+      );
+      if (option) {
+        option.classList.add("category-selector__option--selected");
+        option.setAttribute("aria-selected", "true");
+        option.querySelector(".category-selector__option-check")!.innerHTML =
+          `<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="3,8 7,12 13,4"/></svg>`;
+      }
+    }
+
+    function deselect(id: string) {
+      if (!selectedIds.has(id)) return;
+      selectedIds.delete(id);
+      syncHiddenInputs();
+
+      // Remove tag
+      const tag = tagsContainer.querySelector<HTMLElement>(
+        `[data-cat-id="${CSS.escape(id)}"]`
+      );
+      tag?.remove();
+
+      // Update option in dropdown
+      const option = dropdown.querySelector<HTMLButtonElement>(
+        `[data-cat-id="${CSS.escape(id)}"]`
+      );
+      if (option) {
+        option.classList.remove("category-selector__option--selected");
+        option.setAttribute("aria-selected", "false");
+        option.querySelector(".category-selector__option-check")!.innerHTML = "";
+      }
+    }
+
+    function openDropdown() {
+      dropdown.hidden = false;
+      toggleBtn.setAttribute("aria-expanded", "true");
+    }
+
+    function closeDropdown() {
+      dropdown.hidden = true;
+      toggleBtn.setAttribute("aria-expanded", "false");
+    }
+
+    function toggleDropdown() {
+      if (dropdown.hidden) {
+        openDropdown();
+      } else {
+        closeDropdown();
+      }
+    }
+
+    // ── Toggle button ──────────────────────────────────────────────────────
+    toggleBtn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      toggleDropdown();
+    });
+
+    // ── Dropdown option clicks ─────────────────────────────────────────────
+    dropdown.addEventListener("click", (e) => {
+      const option = (e.target as HTMLElement).closest<HTMLButtonElement>(
+        ".category-selector__option"
+      );
+      if (!option) return;
+      const id = option.dataset.catId!;
+      const name = option.dataset.catName!;
+      if (selectedIds.has(id)) {
+        deselect(id);
+      } else {
+        select(id, name);
+      }
+    });
+
+    // ── Tag remove clicks (delegated) ──────────────────────────────────────
+    tagsContainer.addEventListener("click", (e) => {
+      const btn = (e.target as HTMLElement).closest<HTMLButtonElement>(
+        ".category-selector__tag-remove"
+      );
+      if (!btn) return;
+      const id = btn.dataset.removeId!;
+      deselect(id);
+    });
+
+    // ── Create new category ────────────────────────────────────────────────
+    if (allowCreate && createInput && createBtn) {
+      function createCategory() {
+        const rawName = createInput!.value.trim();
+        if (!rawName) return;
+
+        // Generate a temporary client-side ID (prefixed so server can detect it)
+        const tempId = `new:${rawName}`;
+
+        // Check for duplicate name in dropdown
+        const existing = Array.from(
+          dropdown.querySelectorAll<HTMLButtonElement>(
+            ".category-selector__option"
+          )
+        ).find(
+          (opt) =>
+            opt.dataset.catName?.toLowerCase() === rawName.toLowerCase()
+        );
+
+        if (existing) {
+          // Just select the existing one
+          const existingId = existing.dataset.catId!;
+          select(existingId, existing.dataset.catName!);
+          createInput!.value = "";
+          return;
+        }
+
+        // Add new option to dropdown
+        const newOption = document.createElement("button");
+        newOption.type = "button";
+        newOption.className = "category-selector__option";
+        newOption.setAttribute("role", "option");
+        newOption.setAttribute("aria-selected", "false");
+        newOption.dataset.catId = tempId;
+        newOption.dataset.catName = rawName;
+        newOption.innerHTML = `
+          <span class="category-selector__option-check" aria-hidden="true"></span>
+          <span class="category-selector__option-name">${rawName}</span>
+          <span class="category-selector__option-desc">新分类</span>
+        `;
+
+        // Remove "暂无可用分类" placeholder if present
+        const emptyMsg = dropdown.querySelector(".category-selector__empty");
+        emptyMsg?.remove();
+
+        dropdown.appendChild(newOption);
+
+        // Select it immediately
+        select(tempId, rawName);
+        createInput!.value = "";
+      }
+
+      createBtn.addEventListener("click", createCategory);
+      createInput.addEventListener("keydown", (e) => {
+        if (e.key === "Enter") {
+          e.preventDefault();
+          createCategory();
+        }
+      });
+    }
+
+    // ── Close dropdown when clicking outside ──────────────────────────────
+    document.addEventListener("click", (e) => {
+      if (!root.contains(e.target as Node)) {
+        closeDropdown();
+      }
+    });
+
+    // ── Keyboard: Escape closes dropdown ──────────────────────────────────
+    root.addEventListener("keydown", (e) => {
+      if (e.key === "Escape") {
+        closeDropdown();
+        toggleBtn.focus();
+      }
+    });
+
+    // ── Keyboard: Arrow key navigation within dropdown ─────────────────────
+    dropdown.addEventListener("keydown", (e) => {
+      const options = Array.from(
+        dropdown.querySelectorAll<HTMLButtonElement>(".category-selector__option")
+      );
+      if (options.length === 0) return;
+
+      const focused = document.activeElement as HTMLElement;
+      const currentIndex = options.indexOf(focused as HTMLButtonElement);
+
+      if (e.key === "ArrowDown") {
+        e.preventDefault();
+        const next = options[currentIndex + 1] ?? options[0];
+        next.focus();
+      } else if (e.key === "ArrowUp") {
+        e.preventDefault();
+        const prev = options[currentIndex - 1] ?? options[options.length - 1];
+        prev.focus();
+      } else if (e.key === "Home") {
+        e.preventDefault();
+        options[0]?.focus();
+      } else if (e.key === "End") {
+        e.preventDefault();
+        options[options.length - 1]?.focus();
+      }
+    });
+  });
+</script>

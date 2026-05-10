@@ -1,0 +1,465 @@
+---
+interface SearchBarProps {
+  initialQuery?: string;
+  placeholder?: string;
+  showRegexHelper?: boolean;
+}
+
+const {
+  initialQuery = "",
+  placeholder = "搜索文章（支持正则表达式）…",
+  showRegexHelper = true,
+} = Astro.props as SearchBarProps;
+
+// Unique ID for this instance
+const instanceId = `search-bar-${Math.random().toString(36).slice(2, 9)}`;
+---
+
+<div class="search-bar" id={instanceId}>
+  <form
+    class="search-bar__form"
+    method="GET"
+    action="/plaza"
+    role="search"
+    aria-label="文章搜索"
+    novalidate
+  >
+    <div class="search-bar__input-row">
+      <!-- Search icon -->
+      <span class="search-bar__icon" aria-hidden="true">
+        <svg
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.8"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
+          <circle cx="11" cy="11" r="7" />
+          <line x1="16.5" y1="16.5" x2="22" y2="22" />
+        </svg>
+      </span>
+
+      <!-- Text input -->
+      <input
+        id={`${instanceId}-input`}
+        class="search-bar__input"
+        type="search"
+        name="q"
+        value={initialQuery}
+        placeholder={placeholder}
+        autocomplete="off"
+        autocorrect="off"
+        autocapitalize="off"
+        spellcheck="false"
+        aria-label="搜索查询（支持正则表达式）"
+        aria-describedby={`${instanceId}-helper ${instanceId}-error`}
+        aria-invalid="false"
+      />
+
+      <!-- Clear button (shown when input has value) -->
+      <button
+        type="button"
+        class="search-bar__clear"
+        aria-label="清除搜索内容"
+        hidden
+      >
+        <svg
+          viewBox="0 0 16 16"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          aria-hidden="true"
+        >
+          <line x1="4" y1="4" x2="12" y2="12" />
+          <line x1="12" y1="4" x2="4" y2="12" />
+        </svg>
+      </button>
+
+      <!-- Submit button -->
+      <button
+        type="submit"
+        class="search-bar__submit glass-btn"
+        aria-label="执行搜索"
+      >
+        <svg
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.8"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          aria-hidden="true"
+        >
+          <polyline points="9 18 15 12 9 6" />
+        </svg>
+        <span class="search-bar__submit-label">搜索</span>
+      </button>
+    </div>
+
+    <!-- Validation error message -->
+    <p
+      id={`${instanceId}-error`}
+      class="search-bar__error"
+      role="alert"
+      aria-live="polite"
+      hidden
+    ></p>
+
+    <!-- Regex helper text -->
+    {showRegexHelper && (
+      <p id={`${instanceId}-helper`} class="search-bar__helper">
+        <svg
+          class="search-bar__helper-icon"
+          viewBox="0 0 16 16"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.6"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          aria-hidden="true"
+        >
+          <circle cx="8" cy="8" r="6.5" />
+          <line x1="8" y1="7" x2="8" y2="11.5" />
+          <circle cx="8" cy="5" r="0.5" fill="currentColor" stroke="none" />
+        </svg>
+        支持正则表达式，例如：
+        <code class="search-bar__helper-code">Astro|React</code>、
+        <code class="search-bar__helper-code">^教程</code>、
+        <code class="search-bar__helper-code">\d{4}</code>
+      </p>
+    )}
+  </form>
+</div>
+
+<style>
+  .search-bar {
+    width: 100%;
+  }
+
+  /* ── Form ── */
+  .search-bar__form {
+    display: flex;
+    flex-direction: column;
+    gap: 0.45rem;
+  }
+
+  /* ── Input row ── */
+  .search-bar__input-row {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    background: var(--glass-bg);
+    backdrop-filter: blur(var(--blur-sz));
+    -webkit-backdrop-filter: blur(var(--blur-sz));
+    border: 1px solid var(--glass-border);
+    border-radius: 10px;
+    box-shadow: var(--shadow);
+    padding: 0 0.5rem 0 0.75rem;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  }
+
+  .search-bar__input-row:focus-within {
+    border-color: var(--accent-color);
+    box-shadow: 0 0 0 2px rgba(0, 199, 129, 0.18), var(--shadow);
+  }
+
+  /* Error state */
+  .search-bar--invalid .search-bar__input-row {
+    border-color: #e05252;
+    box-shadow: 0 0 0 2px rgba(224, 82, 82, 0.15), var(--shadow);
+  }
+
+  /* ── Search icon ── */
+  .search-bar__icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    width: 18px;
+    height: 18px;
+    color: var(--text-muted);
+    pointer-events: none;
+    margin-right: 0.5rem;
+  }
+
+  .search-bar__icon svg {
+    width: 18px;
+    height: 18px;
+  }
+
+  /* ── Text input ── */
+  .search-bar__input {
+    flex: 1;
+    min-width: 0;
+    background: transparent;
+    border: none;
+    outline: none;
+    box-shadow: none;
+    padding: 0.6rem 0.25rem;
+    font-size: 0.95rem;
+    font-family: inherit;
+    color: var(--text-color);
+    caret-color: var(--accent-color);
+  }
+
+  .search-bar__input::placeholder {
+    color: var(--text-muted);
+    opacity: 0.75;
+  }
+
+  /* Hide browser's native clear button */
+  .search-bar__input::-webkit-search-cancel-button {
+    display: none;
+  }
+
+  /* ── Clear button ── */
+  .search-bar__clear {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    width: 22px;
+    height: 22px;
+    padding: 0;
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--text-muted);
+    border-radius: 50%;
+    opacity: 0.65;
+    transition: opacity 0.15s ease, background 0.15s ease;
+    margin-right: 0.25rem;
+  }
+
+  .search-bar__clear:hover {
+    opacity: 1;
+    background: rgba(0, 0, 0, 0.07);
+  }
+
+  .search-bar__clear:focus-visible {
+    opacity: 1;
+    outline: 2px solid var(--accent-color);
+    outline-offset: 1px;
+  }
+
+  .search-bar__clear[hidden] {
+    display: none;
+  }
+
+  .search-bar__clear svg {
+    width: 12px;
+    height: 12px;
+    pointer-events: none;
+  }
+
+  /* ── Submit button ── */
+  .search-bar__submit {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    flex-shrink: 0;
+    padding: 0.35rem 0.75rem;
+    font-size: 0.88rem;
+    font-weight: 600;
+    font-family: inherit;
+    color: var(--accent-color);
+    border-color: var(--accent-color);
+    border-radius: 7px;
+    margin: 0.3rem 0;
+    transition: background 0.15s ease, color 0.15s ease, transform 0.15s ease;
+  }
+
+  .search-bar__submit:hover:not(:disabled) {
+    background: var(--accent-color);
+    color: var(--rev-text-color, #fff);
+  }
+
+  .search-bar__submit:focus-visible {
+    outline: 2px solid var(--accent-color);
+    outline-offset: 2px;
+    box-shadow: 0 0 0 4px rgba(0, 199, 129, 0.2);
+  }
+
+  .search-bar__submit svg {
+    width: 14px;
+    height: 14px;
+    flex-shrink: 0;
+  }
+
+  /* ── Error message ── */
+  .search-bar__error {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.35rem;
+    margin: 0;
+    padding: 0.4rem 0.65rem;
+    font-size: 0.83rem;
+    color: #e05252;
+    background: rgba(224, 82, 82, 0.08);
+    border: 1px solid rgba(224, 82, 82, 0.22);
+    border-radius: 7px;
+    line-height: 1.45;
+  }
+
+  .search-bar__error[hidden] {
+    display: none;
+  }
+
+  .dark-theme .search-bar__error {
+    color: #ff8a8a;
+    background: rgba(224, 82, 82, 0.12);
+    border-color: rgba(224, 82, 82, 0.28);
+  }
+
+  /* ── Helper text ── */
+  .search-bar__helper {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.2rem;
+    margin: 0;
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    line-height: 1.5;
+  }
+
+  .search-bar__helper-icon {
+    width: 13px;
+    height: 13px;
+    flex-shrink: 0;
+    opacity: 0.7;
+  }
+
+  .search-bar__helper-code {
+    display: inline-block;
+    padding: 0.05em 0.35em;
+    font-family: ui-monospace, Menlo, Monaco, Consolas, monospace;
+    font-size: 0.88em;
+    background: var(--nglass-front, rgba(0, 225, 135, 0.15));
+    color: var(--accent-color);
+    border: 1px solid var(--glass-border);
+    border-radius: 4px;
+  }
+
+  /* ── Responsive ── */
+  @media (max-width: 480px) {
+    .search-bar__submit-label {
+      display: none;
+    }
+
+    .search-bar__submit {
+      padding: 0.35rem 0.5rem;
+    }
+  }
+</style>
+
+<script>
+  document.querySelectorAll<HTMLElement>(".search-bar").forEach((root) => {
+    const form = root.querySelector<HTMLFormElement>(".search-bar__form")!;
+    const input = root.querySelector<HTMLInputElement>(".search-bar__input")!;
+    const clearBtn = root.querySelector<HTMLButtonElement>(".search-bar__clear")!;
+    const submitBtn = root.querySelector<HTMLButtonElement>(".search-bar__submit")!;
+    const errorEl = root.querySelector<HTMLParagraphElement>(".search-bar__error")!;
+
+    // ── Regex validation ────────────────────────────────────────────────────
+
+    function validateRegex(pattern: string): { valid: boolean; error?: string } {
+      if (!pattern) return { valid: true };
+      try {
+        new RegExp(pattern);
+        return { valid: true };
+      } catch (err) {
+        return {
+          valid: false,
+          error: err instanceof Error ? err.message : "无效的正则表达式",
+        };
+      }
+    }
+
+    function showError(message: string) {
+      errorEl.textContent = message;
+      errorEl.hidden = false;
+      input.setAttribute("aria-invalid", "true");
+      root.classList.add("search-bar--invalid");
+    }
+
+    function clearError() {
+      errorEl.hidden = true;
+      errorEl.textContent = "";
+      input.setAttribute("aria-invalid", "false");
+      root.classList.remove("search-bar--invalid");
+    }
+
+    // ── Clear button visibility ─────────────────────────────────────────────
+
+    function updateClearBtn() {
+      clearBtn.hidden = input.value.length === 0;
+    }
+
+    // ── Real-time validation as user types ──────────────────────────────────
+
+    let validationTimer: ReturnType<typeof setTimeout> | null = null;
+
+    input.addEventListener("input", () => {
+      updateClearBtn();
+
+      // Debounce validation slightly so it doesn't fire on every keystroke
+      if (validationTimer !== null) clearTimeout(validationTimer);
+      validationTimer = setTimeout(() => {
+        const result = validateRegex(input.value);
+        if (result.valid) {
+          clearError();
+        } else {
+          showError(`无效的正则表达式：${result.error}`);
+        }
+      }, 200);
+    });
+
+    // ── Clear button click ──────────────────────────────────────────────────
+
+    clearBtn.addEventListener("click", () => {
+      input.value = "";
+      clearError();
+      updateClearBtn();
+      input.focus();
+    });
+
+    // ── Form submit: prevent if invalid regex ───────────────────────────────
+
+    form.addEventListener("submit", (e) => {
+      const result = validateRegex(input.value);
+      if (!result.valid) {
+        e.preventDefault();
+        showError(`无效的正则表达式：${result.error}`);
+        input.focus();
+        return;
+      }
+      clearError();
+    });
+
+    // ── Keyboard: Escape clears input ───────────────────────────────────────
+
+    input.addEventListener("keydown", (e) => {
+      if (e.key === "Escape") {
+        input.value = "";
+        clearError();
+        updateClearBtn();
+      }
+    });
+
+    // ── Initialize clear button state ───────────────────────────────────────
+
+    updateClearBtn();
+
+    // ── Validate initial query if present ───────────────────────────────────
+
+    if (input.value) {
+      const result = validateRegex(input.value);
+      if (!result.valid) {
+        showError(`无效的正则表达式：${result.error}`);
+      }
+    }
+  });
+</script>

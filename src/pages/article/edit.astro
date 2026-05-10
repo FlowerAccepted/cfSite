@@ -1,0 +1,558 @@
+---
+/**
+ * Article Creation Page
+ *
+ * Route: /article/edit
+ * - Requires authentication (redirects to /login if not logged in)
+ * - Provides a form to create a new article with:
+ *   - Title input (required)
+ *   - Content via MarkdownIDE (required)
+ *   - Category selection via CategorySelector (optional, allows creating new)
+ *   - External URL input (optional)
+ *   - Published checkbox
+ *
+ * Requirements: 6.1, 6.2, 4.1, 1.2, 5.1
+ */
+
+export const prerender = false;
+
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import MarkdownIDE from "../../components/MarkdownIDE.astro";
+import CategorySelector from "../../components/CategorySelector.astro";
+import { ArticleService } from "../../services/articleService";
+import { CategoryService } from "../../services/categoryService";
+import { getDatabase } from "../../utils/db";
+import type { Category } from "../../types/article";
+import { generateStableArticleSlug } from "../../utils/urlGenerator";
+
+// --- Auth check (Req 6.1) ---
+const user = Astro.locals.user;
+if (!user) {
+  return Astro.redirect("/login");
+}
+
+const db = getDatabase();
+const articleService = new ArticleService(db);
+const categoryService = new CategoryService(db);
+
+// --- Load available categories ---
+let availableCategories: Category[] = [];
+try {
+  availableCategories = categoryService.getAllCategories();
+} catch {
+  availableCategories = [];
+}
+
+// --- Handle POST submission ---
+let formError = "";
+let fieldErrors: Record<string, string> = {};
+
+if (Astro.request.method === "POST") {
+  try {
+    const formData = await Astro.request.formData();
+
+    const title = (formData.get("title") as string | null)?.trim() ?? "";
+    const content = (formData.get("content") as string | null) ?? "";
+    const externalUrl = (formData.get("externalUrl") as string | null)?.trim() ?? "";
+    const published = formData.get("published") === "on";
+
+    // Collect category IDs (may include "new:name" entries for newly created categories)
+    const rawCategories = formData.getAll("categories") as string[];
+
+    // Validate required fields (Req 6.2)
+    if (!title) {
+      fieldErrors.title = "标题不能为空";
+    } else if (title.length > 200) {
+      fieldErrors.title = "标题不能超过 200 个字符";
+    }
+
+    if (!content.trim()) {
+      fieldErrors.content = "内容不能为空";
+    } else if (content.length > 100000) {
+      fieldErrors.content = "内容不能超过 100,000 个字符";
+    }
+
+    if (Object.keys(fieldErrors).length === 0) {
+      // Resolve category IDs — create new categories for "new:name" entries
+      const resolvedCategoryIds: string[] = [];
+
+      for (const catValue of rawCategories) {
+        if (catValue.startsWith("new:")) {
+          // Create the new category
+          const newName = catValue.slice(4).trim();
+          if (newName) {
+            try {
+              // Check if it already exists (race condition guard)
+              const existing = availableCategories.find(
+                (c) => c.name.toLowerCase() === newName.toLowerCase()
+              );
+              if (existing) {
+                resolvedCategoryIds.push(existing.id);
+              } else {
+                const created = categoryService.createCategory(newName);
+                resolvedCategoryIds.push(created.id);
+              }
+            } catch {
+              // If creation fails (e.g. duplicate), try to find by name
+              const allCats = categoryService.getAllCategories();
+              const found = allCats.find(
+                (c) => c.name.toLowerCase() === newName.toLowerCase()
+              );
+              if (found) {
+                resolvedCategoryIds.push(found.id);
+              }
+            }
+          }
+        } else if (catValue) {
+          resolvedCategoryIds.push(catValue);
+        }
+      }
+
+      // Create the article (Req 6.1, 6.2)
+      const article = articleService.createArticle({
+        title,
+        content,
+        authorUid: user.uid,
+        categories: resolvedCategoryIds,
+        externalUrl: externalUrl || undefined,
+        published,
+      });
+
+      // Redirect to the article detail page (Req 3.1)
+      return Astro.redirect(`/a/${user.uid}/${generateStableArticleSlug(article.id)}`);
+    }
+  } catch (err: any) {
+    // Handle validation errors from the service layer
+    if (err?.name === "ValidationError") {
+      if (err.field) {
+        fieldErrors[err.field] = err.message;
+      } else {
+        formError = err.message;
+      }
+    } else {
+      formError = err?.message ?? "创建文章时发生错误，请稍后重试。";
+    }
+  }
+}
+---
+
+<BaseLayout title="创建文章 - FAc's Site">
+  <header class="article-edit-header glass-panel">
+    <h1>创建新文章</h1>
+  </header>
+
+  {formError && (
+    <section class="article-edit-error glass-panel" role="alert" aria-live="polite">
+      <svg
+        class="article-edit-error-icon"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="1.8"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        aria-hidden="true"
+      >
+        <circle cx="12" cy="12" r="9" />
+        <line x1="12" y1="8" x2="12" y2="12" />
+        <circle cx="12" cy="16" r="0.5" fill="currentColor" stroke="none" />
+      </svg>
+      <span>{formError}</span>
+    </section>
+  )}
+
+  <form
+    method="POST"
+    class="article-edit-form"
+    id="article-create-form"
+    novalidate
+  >
+    <!-- Title field (Req 6.2) -->
+    <section class="article-edit-section glass-panel" aria-labelledby="title-section-label">
+      <label class="article-edit-label" for="article-title" id="title-section-label">
+        标题
+        <span class="article-edit-required" aria-hidden="true">*</span>
+        <span class="sr-only">（必填）</span>
+      </label>
+      <input
+        id="article-title"
+        name="title"
+        type="text"
+        class={`glass-input article-edit-title-input${fieldErrors.title ? " article-edit-input-error" : ""}`}
+        placeholder="请输入文章标题（最多 200 个字符）"
+        maxlength="200"
+        required
+        aria-required="true"
+        aria-describedby={fieldErrors.title ? "title-error" : undefined}
+      />
+      {fieldErrors.title && (
+        <p id="title-error" class="article-edit-field-error" role="alert">
+          {fieldErrors.title}
+        </p>
+      )}
+    </section>
+
+    <!-- Content field via MarkdownIDE (Req 4.1, 6.2) -->
+    <section class="article-edit-section glass-panel">
+      <div class="article-edit-label-row">
+        <span class="article-edit-label">
+          内容
+          <span class="article-edit-required" aria-hidden="true">*</span>
+        </span>
+        {fieldErrors.content && (
+          <p class="article-edit-field-error" role="alert">
+            {fieldErrors.content}
+          </p>
+        )}
+      </div>
+      <div class="article-edit-ide-wrap">
+        <MarkdownIDE
+          prefix="article"
+          fileTitle="article.md"
+          editorHeightClass="h-[32rem]"
+          editorPlaceholder="在此输入文章内容，支持 Markdown"
+        />
+      </div>
+      <!-- Hidden textarea that syncs with MarkdownIDE for form submission -->
+      <textarea
+        id="article-content-hidden"
+        name="content"
+        class="hidden"
+        aria-hidden="true"
+      ></textarea>
+    </section>
+
+    <!-- Categories (Req 1.2) -->
+    <section class="article-edit-section glass-panel">
+      <span class="article-edit-label">分类</span>
+      <p class="article-edit-hint">可选择已有分类或创建新分类</p>
+      <CategorySelector
+        name="categories"
+        selectedCategories={[]}
+        availableCategories={availableCategories}
+        allowCreate={true}
+      />
+    </section>
+
+    <!-- External URL (Req 5.1) -->
+    <section class="article-edit-section glass-panel">
+      <label class="article-edit-label" for="article-external-url">
+        外链加载地址
+      </label>
+      <p class="article-edit-hint">
+        可选。填写后，文章内容将从该外部 URL 加载（支持纯文本和 Markdown）。
+      </p>
+      <input
+        id="article-external-url"
+        name="externalUrl"
+        type="url"
+        class="glass-input article-edit-url-input"
+        placeholder="https://example.com/content.md（可选）"
+        aria-describedby="external-url-hint"
+      />
+      <p id="external-url-hint" class="article-edit-hint article-edit-hint--small">
+        留空则使用上方编辑器中的内容。
+      </p>
+    </section>
+
+    <!-- Publish checkbox -->
+    <section class="article-edit-section glass-panel article-edit-publish-section">
+      <label class="article-edit-publish-label" for="article-published">
+        <input
+          id="article-published"
+          name="published"
+          type="checkbox"
+          class="article-edit-checkbox"
+        />
+        <span class="article-edit-publish-text">
+          <strong>立即发布</strong>
+          <span class="article-edit-hint">不勾选则保存为草稿，仅自己可见</span>
+        </span>
+      </label>
+    </section>
+
+    <!-- Form actions -->
+    <div class="article-edit-actions">
+      <button type="submit" class="glass-btn article-edit-submit" id="submit-btn">
+        <svg
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          aria-hidden="true"
+        >
+          <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" />
+          <polyline points="17 21 17 13 7 13 7 21" />
+          <polyline points="7 3 7 8 15 8" />
+        </svg>
+        保存文章
+      </button>
+      <a href="/plaza" class="glass-btn article-edit-cancel">
+        取消
+      </a>
+    </div>
+  </form>
+</BaseLayout>
+
+<style>
+  /* ── Layout ── */
+  .article-edit-header {
+    margin-bottom: 1.25rem;
+  }
+
+  .article-edit-header h1 {
+    margin: 0;
+    font-size: 1.75rem;
+    font-weight: 700;
+  }
+
+  .article-edit-form {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+    max-width: 900px;
+    margin: 0 auto;
+    width: 100%;
+  }
+
+  /* ── Error banner ── */
+  .article-edit-error {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 0.75rem 1.25rem;
+    color: #e05252;
+    background: rgba(224, 82, 82, 0.08);
+    border-color: rgba(224, 82, 82, 0.22);
+    font-size: 0.9rem;
+    margin-bottom: 0.25rem;
+  }
+
+  .dark-theme .article-edit-error {
+    color: #ff8a8a;
+    background: rgba(224, 82, 82, 0.12);
+    border-color: rgba(224, 82, 82, 0.28);
+  }
+
+  .article-edit-error-icon {
+    width: 18px;
+    height: 18px;
+    flex-shrink: 0;
+  }
+
+  /* ── Sections ── */
+  .article-edit-section {
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+    padding: 1.25rem 1.5rem;
+  }
+
+  /* ── Labels ── */
+  .article-edit-label {
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--text-color);
+  }
+
+  .article-edit-label-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+  }
+
+  .article-edit-required {
+    color: #e05252;
+    margin-left: 0.2rem;
+  }
+
+  /* ── Inputs ── */
+  .article-edit-title-input {
+    width: 100%;
+    font-size: 1.05rem;
+    box-sizing: border-box;
+  }
+
+  .article-edit-url-input {
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  .article-edit-input-error {
+    border-color: rgba(224, 82, 82, 0.6) !important;
+    outline-color: rgba(224, 82, 82, 0.4) !important;
+  }
+
+  /* ── Field errors ── */
+  .article-edit-field-error {
+    margin: 0;
+    font-size: 0.82rem;
+    color: #e05252;
+  }
+
+  .dark-theme .article-edit-field-error {
+    color: #ff8a8a;
+  }
+
+  /* ── Hints ── */
+  .article-edit-hint {
+    margin: 0;
+    font-size: 0.83rem;
+    color: var(--text-muted);
+    line-height: 1.4;
+  }
+
+  .article-edit-hint--small {
+    font-size: 0.78rem;
+    opacity: 0.8;
+  }
+
+  /* ── MarkdownIDE wrapper ── */
+  .article-edit-ide-wrap {
+    /* Remove the glass-panel from MarkdownIDE since we're already in one */
+  }
+
+  .article-edit-ide-wrap :global(.md-ide-shell) {
+    /* Override the nested glass-panel to avoid double borders */
+    background: transparent;
+    border: 1px solid var(--glass-border);
+    box-shadow: none;
+  }
+
+  /* ── Publish section ── */
+  .article-edit-publish-section {
+    padding: 1rem 1.5rem;
+  }
+
+  .article-edit-publish-label {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+    cursor: pointer;
+  }
+
+  .article-edit-checkbox {
+    width: 1.1rem;
+    height: 1.1rem;
+    margin-top: 0.15rem;
+    flex-shrink: 0;
+    accent-color: var(--accent-color);
+    cursor: pointer;
+  }
+
+  .article-edit-publish-text {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+  }
+
+  .article-edit-publish-text strong {
+    font-size: 0.95rem;
+    color: var(--text-color);
+  }
+
+  /* ── Actions ── */
+  .article-edit-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding-bottom: 1rem;
+  }
+
+  .article-edit-submit {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-weight: 600;
+    color: var(--accent-color);
+    border-color: var(--accent-color);
+  }
+
+  .article-edit-submit svg {
+    width: 16px;
+    height: 16px;
+    flex-shrink: 0;
+  }
+
+  .article-edit-cancel {
+    color: var(--text-muted);
+    text-decoration: none;
+  }
+
+  /* ── Responsive ── */
+  @media (max-width: 640px) {
+    .article-edit-section {
+      padding: 1rem 1rem;
+    }
+
+    .article-edit-actions {
+      flex-direction: column;
+      align-items: stretch;
+    }
+
+    .article-edit-submit,
+    .article-edit-cancel {
+      justify-content: center;
+      text-align: center;
+    }
+  }
+</style>
+
+<script>
+  /**
+   * Sync MarkdownIDE content to the hidden textarea before form submission.
+   * The MarkdownIDE stores its content in a textarea with id="${prefix}-input"
+   * (the fallback textarea) or via a CodeMirror editor. We read the value
+   * from the MarkdownIDE's internal textarea and copy it to the hidden field.
+   */
+  const form = document.getElementById("article-create-form") as HTMLFormElement | null;
+  const hiddenContent = document.getElementById("article-content-hidden") as HTMLTextAreaElement | null;
+
+  if (form && hiddenContent) {
+    form.addEventListener("submit", (e) => {
+      // The MarkdownIDE exposes its content via the textarea with id="article-input"
+      // (the fallback textarea that is kept in sync with CodeMirror)
+      const mdTextarea = document.getElementById("article-input") as HTMLTextAreaElement | null;
+      if (mdTextarea) {
+        hiddenContent.value = mdTextarea.value;
+      }
+
+      // Client-side validation
+      const titleInput = document.getElementById("article-title") as HTMLInputElement | null;
+      const title = titleInput?.value.trim() ?? "";
+      const content = hiddenContent.value.trim();
+
+      if (!title) {
+        e.preventDefault();
+        titleInput?.focus();
+        titleInput?.setCustomValidity("标题不能为空");
+        titleInput?.reportValidity();
+        return;
+      }
+
+      if (!content) {
+        e.preventDefault();
+        // Scroll to the content section
+        document.querySelector(".article-edit-ide-wrap")?.scrollIntoView({ behavior: "smooth" });
+        return;
+      }
+
+      // Disable submit button to prevent double submission
+      const submitBtn = document.getElementById("submit-btn") as HTMLButtonElement | null;
+      if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.textContent = "保存中…";
+      }
+    });
+
+    // Clear custom validity on input
+    const titleInput = document.getElementById("article-title") as HTMLInputElement | null;
+    titleInput?.addEventListener("input", () => {
+      titleInput.setCustomValidity("");
+    });
+  }
+</script>

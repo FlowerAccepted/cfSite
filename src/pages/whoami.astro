@@ -43,7 +43,12 @@ const API_BASE = import.meta.env.PUBLIC_API_BASE;
         <section id="intro-editor" class="mt-4 hidden">
             <p class="text-sm opacity-70">编辑个人简介</p>
             <div class="mt-2">
-                <MarkdownIDE prefix="intro" fileTitle="intro.md" editorHeightClass="h-[28rem]" />
+                <MarkdownIDE
+                    prefix="intro"
+                    fileTitle="intro.md"
+                    editorHeightClass="h-[28rem]"
+                    autoInit={false}
+                />
             </div>
             <div class="mt-3 flex items-center justify-end gap-2">
                 <button class="glass-btn" id="intro-apply">保存</button>

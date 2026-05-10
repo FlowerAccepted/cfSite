@@ -1,0 +1,400 @@
+---
+/**
+ * ExternalContentLoader Component
+ *
+ * Fetches and displays content from an external URL at render time (SSR).
+ * Renders Markdown content as HTML when detected.
+ * Shows a fallback message on error or timeout.
+ *
+ * Requirements: 5.3, 5.4
+ */
+
+import { loadContent } from "../services/externalLoaderService.ts";
+import { renderMarkdown, isMarkdown } from "../utils/markdownRenderer.ts";
+
+interface ExternalContentLoaderProps {
+  url: string;
+  timeout?: number; // default 5000ms
+  fallbackMessage?: string;
+}
+
+const {
+  url,
+  timeout = 5000,
+  fallbackMessage = "内容暂时无法加载，请稍后再试。",
+} = Astro.props as ExternalContentLoaderProps;
+
+// Fetch content server-side at render time
+const result = await loadContent(url, timeout);
+
+// Determine how to render the content
+let renderedHtml: string | null = null;
+let isMarkdownContent = false;
+
+if (result.success && result.content) {
+  const contentTypeLower = result.contentType.toLowerCase();
+  // Treat as Markdown if content-type indicates it, or if the content looks like Markdown
+  if (
+    contentTypeLower.includes("markdown") ||
+    contentTypeLower.includes("text/x-markdown") ||
+    isMarkdown(result.content)
+  ) {
+    isMarkdownContent = true;
+    renderedHtml = renderMarkdown(result.content);
+  }
+}
+---
+
+<div
+  class={`external-content-loader ${result.success ? "external-content-loader--loaded" : "external-content-loader--error"}`}
+  aria-label={result.success ? "外部加载内容" : "外部内容加载失败"}
+>
+  {result.success ? (
+    <div class="external-content-loader__body">
+      {isMarkdownContent && renderedHtml ? (
+        <div
+          class="external-content-loader__markdown prose"
+          set:html={renderedHtml}
+        />
+      ) : (
+        <pre class="external-content-loader__plain">{result.content}</pre>
+      )}
+      <footer class="external-content-loader__meta">
+        <span class="external-content-loader__meta-item" aria-label="加载耗时">
+          <svg
+            class="external-content-loader__meta-icon"
+            viewBox="0 0 16 16"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.6"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            aria-hidden="true"
+          >
+            <circle cx="8" cy="8" r="6.5" />
+            <path d="M8 4.5v3.5l2 2" />
+          </svg>
+          {result.loadTime}ms
+        </span>
+        <a
+          href={url}
+          class="external-content-loader__source-link"
+          target="_blank"
+          rel="noopener noreferrer"
+          aria-label="查看原始来源（在新标签页中打开）"
+        >
+          <svg
+            class="external-content-loader__meta-icon"
+            viewBox="0 0 16 16"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.6"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            aria-hidden="true"
+          >
+            <path d="M7 3H3a1 1 0 0 0-1 1v9a1 1 0 0 0 1 1h9a1 1 0 0 0 1-1V9" />
+            <path d="M10 2h4v4" />
+            <line x1="14" y1="2" x2="7" y2="9" />
+          </svg>
+          查看来源
+        </a>
+      </footer>
+    </div>
+  ) : (
+    <div class="external-content-loader__fallback" role="alert">
+      <svg
+        class="external-content-loader__fallback-icon"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="1.8"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        aria-hidden="true"
+      >
+        <circle cx="12" cy="12" r="9" />
+        <line x1="12" y1="8" x2="12" y2="12" />
+        <circle cx="12" cy="16" r="0.5" fill="currentColor" stroke="none" />
+      </svg>
+      <div class="external-content-loader__fallback-text">
+        <p class="external-content-loader__fallback-message">{fallbackMessage}</p>
+        {result.error && (
+          <p class="external-content-loader__fallback-detail" aria-label="错误详情">
+            {result.error}
+          </p>
+        )}
+      </div>
+    </div>
+  )}
+</div>
+
+<style>
+  .external-content-loader {
+    width: 100%;
+    border-radius: 12px;
+    overflow: hidden;
+  }
+
+  /* ── Loaded state ── */
+  .external-content-loader--loaded {
+    background: var(--glass-bg);
+    backdrop-filter: blur(var(--blur-sz));
+    -webkit-backdrop-filter: blur(var(--blur-sz));
+    border: 1px solid var(--glass-border);
+    box-shadow: var(--shadow);
+  }
+
+  .external-content-loader__body {
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* Markdown rendered content */
+  .external-content-loader__markdown {
+    padding: 1.5rem 1.75rem;
+    color: var(--text-color);
+    line-height: 1.75;
+    overflow-x: auto;
+  }
+
+  /* Plain text content */
+  .external-content-loader__plain {
+    padding: 1.5rem 1.75rem;
+    margin: 0;
+    font-family: ui-monospace, Menlo, Monaco, Consolas, monospace;
+    font-size: 0.88rem;
+    line-height: 1.65;
+    color: var(--text-color);
+    white-space: pre-wrap;
+    word-break: break-word;
+    overflow-x: auto;
+  }
+
+  /* Meta footer */
+  .external-content-loader__meta {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    padding: 0.6rem 1.75rem;
+    border-top: 1px solid var(--glass-border);
+    font-size: 0.78rem;
+    color: var(--text-muted);
+  }
+
+  .external-content-loader__meta-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+  }
+
+  .external-content-loader__meta-icon {
+    width: 13px;
+    height: 13px;
+    flex-shrink: 0;
+    opacity: 0.75;
+  }
+
+  .external-content-loader__source-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    color: var(--text-muted);
+    text-decoration: none;
+    font-weight: 500;
+    transition: color 0.15s ease;
+  }
+
+  .external-content-loader__source-link:hover {
+    color: var(--accent-color);
+  }
+
+  /* ── Error / fallback state ── */
+  .external-content-loader--error {
+    background: rgba(224, 82, 82, 0.06);
+    border: 1px solid rgba(224, 82, 82, 0.22);
+  }
+
+  .external-content-loader__fallback {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.85rem;
+    padding: 1.25rem 1.5rem;
+  }
+
+  .external-content-loader__fallback-icon {
+    width: 22px;
+    height: 22px;
+    flex-shrink: 0;
+    color: #e05252;
+    margin-top: 0.1rem;
+  }
+
+  .external-content-loader__fallback-text {
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+  }
+
+  .external-content-loader__fallback-message {
+    margin: 0;
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: #e05252;
+    line-height: 1.45;
+  }
+
+  .external-content-loader__fallback-detail {
+    margin: 0;
+    font-size: 0.82rem;
+    color: var(--text-muted);
+    font-family: ui-monospace, Menlo, Monaco, Consolas, monospace;
+    line-height: 1.5;
+    opacity: 0.85;
+  }
+
+  /* Dark theme adjustments */
+  .dark-theme .external-content-loader--error {
+    background: rgba(224, 82, 82, 0.1);
+    border-color: rgba(224, 82, 82, 0.3);
+  }
+
+  .dark-theme .external-content-loader__fallback-message {
+    color: #ff8a8a;
+  }
+
+  /* ── Prose styles for rendered Markdown ── */
+  .external-content-loader__markdown :global(h1),
+  .external-content-loader__markdown :global(h2),
+  .external-content-loader__markdown :global(h3),
+  .external-content-loader__markdown :global(h4),
+  .external-content-loader__markdown :global(h5),
+  .external-content-loader__markdown :global(h6) {
+    color: var(--text-color);
+    font-weight: 700;
+    line-height: 1.35;
+    margin: 1.4em 0 0.5em;
+  }
+
+  .external-content-loader__markdown :global(h1) { font-size: 1.7rem; }
+  .external-content-loader__markdown :global(h2) { font-size: 1.4rem; }
+  .external-content-loader__markdown :global(h3) { font-size: 1.2rem; }
+  .external-content-loader__markdown :global(h4) { font-size: 1.05rem; }
+
+  .external-content-loader__markdown :global(p) {
+    margin: 0.75em 0;
+    color: var(--text-color);
+  }
+
+  .external-content-loader__markdown :global(a) {
+    color: var(--accent-color);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+    transition: opacity 0.15s ease;
+  }
+
+  .external-content-loader__markdown :global(a:hover) {
+    opacity: 0.8;
+  }
+
+  .external-content-loader__markdown :global(ul),
+  .external-content-loader__markdown :global(ol) {
+    margin: 0.75em 0;
+    padding-left: 1.5em;
+    color: var(--text-color);
+  }
+
+  .external-content-loader__markdown :global(li) {
+    margin: 0.3em 0;
+  }
+
+  .external-content-loader__markdown :global(blockquote) {
+    margin: 1em 0;
+    padding: 0.5em 1em;
+    border-left: 3px solid var(--accent-color);
+    background: var(--nglass-front, rgba(0, 225, 135, 0.08));
+    border-radius: 0 6px 6px 0;
+    color: var(--text-muted);
+    font-style: italic;
+  }
+
+  .external-content-loader__markdown :global(code) {
+    font-family: ui-monospace, Menlo, Monaco, Consolas, monospace;
+    font-size: 0.88em;
+    padding: 0.1em 0.35em;
+    background: var(--nglass-front, rgba(0, 225, 135, 0.12));
+    border: 1px solid var(--glass-border);
+    border-radius: 4px;
+    color: var(--accent-color);
+  }
+
+  .external-content-loader__markdown :global(pre) {
+    margin: 1em 0;
+    padding: 1em 1.25em;
+    background: var(--glass-bg);
+    border: 1px solid var(--glass-border);
+    border-radius: 8px;
+    overflow-x: auto;
+    line-height: 1.6;
+  }
+
+  .external-content-loader__markdown :global(pre code) {
+    padding: 0;
+    background: none;
+    border: none;
+    border-radius: 0;
+    color: var(--text-color);
+    font-size: 0.88rem;
+  }
+
+  .external-content-loader__markdown :global(img) {
+    max-width: 100%;
+    height: auto;
+    border-radius: 8px;
+    margin: 0.5em 0;
+  }
+
+  .external-content-loader__markdown :global(hr) {
+    border: none;
+    border-top: 1px solid var(--glass-border);
+    margin: 1.5em 0;
+  }
+
+  .external-content-loader__markdown :global(table) {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 1em 0;
+    font-size: 0.9rem;
+  }
+
+  .external-content-loader__markdown :global(th),
+  .external-content-loader__markdown :global(td) {
+    padding: 0.5em 0.75em;
+    border: 1px solid var(--glass-border);
+    text-align: left;
+    color: var(--text-color);
+  }
+
+  .external-content-loader__markdown :global(th) {
+    background: var(--nglass-front, rgba(0, 225, 135, 0.1));
+    font-weight: 600;
+  }
+
+  /* ── Responsive ── */
+  @media (max-width: 600px) {
+    .external-content-loader__markdown,
+    .external-content-loader__plain {
+      padding: 1rem 1.1rem;
+    }
+
+    .external-content-loader__meta {
+      padding: 0.5rem 1.1rem;
+    }
+
+    .external-content-loader__fallback {
+      padding: 1rem 1.1rem;
+    }
+  }
+</style>

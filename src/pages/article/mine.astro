@@ -1,0 +1,339 @@
+---
+export const prerender = false;
+
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import { ArticleService } from "../../services/articleService";
+import { getDatabase } from "../../utils/db";
+import type { Article } from "../../types/article";
+import { generateStableArticleSlug } from "../../utils/urlGenerator";
+
+const user = Astro.locals.user;
+if (!user) {
+  return Astro.redirect("/login");
+}
+
+const pageParam = Astro.url.searchParams.get("page");
+const page = Math.max(1, parseInt(pageParam ?? "1", 10) || 1);
+const PAGE_SIZE = 12;
+
+const db = getDatabase();
+const articleService = new ArticleService(db);
+
+let articles: Article[] = [];
+let total = 0;
+let totalPages = 1;
+
+try {
+  const result = articleService.listArticles({
+    page,
+    pageSize: PAGE_SIZE,
+    authorUid: user.uid,
+    sortBy: "updatedAt",
+    sortOrder: "desc",
+  });
+  articles = result.articles;
+  total = result.total;
+  totalPages = result.totalPages;
+} catch {
+  articles = [];
+  total = 0;
+  totalPages = 1;
+}
+
+function buildUrl(targetPage: number): string {
+  if (targetPage <= 1) return "/article/mine";
+  return `/article/mine?page=${targetPage}`;
+}
+
+function formatDate(date: Date): string {
+  return new Intl.DateTimeFormat("zh-CN", {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(date instanceof Date ? date : new Date(date));
+}
+
+function buildExcerpt(content: string): string {
+  return content.replace(/[#*`>\-_\[\]()!]/g, "").replace(/\s+/g, " ").trim().slice(0, 160);
+}
+---
+
+<BaseLayout title="我的文章 - FAc's Site">
+  <section class="mine-header glass-panel">
+    <div class="mine-header-main">
+      <div>
+        <h1 class="mine-title">我的文章</h1>
+        <p class="mine-subtitle">管理你写过的文章、草稿和最近更新内容</p>
+      </div>
+      <a href="/article/_new" class="glass-btn mine-create-btn">写新文章</a>
+    </div>
+    <p class="mine-count" aria-live="polite">共 {total} 篇文章</p>
+  </section>
+
+  <section class="mine-list" aria-label="我的文章列表">
+    {articles.length > 0 ? (
+      <div class="mine-grid">
+        {articles.map((article) => {
+          const viewUrl = `/a/${article.authorUid}/${generateStableArticleSlug(article.id)}`;
+          const editUrl = `${viewUrl}?edit`;
+          const excerpt = buildExcerpt(article.content);
+          return (
+            <article class="mine-card glass-panel">
+              <div class="mine-card-top">
+                <div class="mine-card-heading">
+                  <a href={viewUrl} class="mine-card-title-link">
+                    <h2 class="mine-card-title">{article.title}</h2>
+                  </a>
+                  <div class="mine-card-badges" aria-label="文章状态">
+                    <span class={`mine-badge ${article.published ? "mine-badge--published" : "mine-badge--draft"}`}>
+                      {article.published ? "已发布" : "草稿"}
+                    </span>
+                    {article.externalUrl && (
+                      <span class="mine-badge mine-badge--external">外链</span>
+                    )}
+                  </div>
+                </div>
+                {excerpt && <p class="mine-card-excerpt">{excerpt}</p>}
+              </div>
+
+              {article.categories && article.categories.length > 0 && (
+                <div class="mine-card-categories" aria-label="文章分类">
+                  {article.categories.map((category) => (
+                    <a href={`/plaza?category=${category.id}`} class="mine-category-chip">
+                      {category.name}
+                    </a>
+                  ))}
+                </div>
+              )}
+
+              <div class="mine-card-footer">
+                <div class="mine-card-meta">
+                  <span>创建于 {formatDate(article.createdAt)}</span>
+                  <span>更新于 {formatDate(article.updatedAt)}</span>
+                </div>
+                <div class="mine-card-actions">
+                  <a href={viewUrl} class="glass-btn mine-action-btn">查看</a>
+                  <a href={editUrl} class="glass-btn mine-action-btn">编辑</a>
+                </div>
+              </div>
+            </article>
+          );
+        })}
+      </div>
+    ) : (
+      <div class="mine-empty glass-panel" role="status">
+        <h2>你还没有文章</h2>
+        <p>先写第一篇吧，草稿和已发布文章都会出现在这里。</p>
+        <a href="/article/_new" class="glass-btn mine-empty-btn">去写文章</a>
+      </div>
+    )}
+  </section>
+
+  {totalPages > 1 && (
+    <nav class="mine-pagination glass-panel" aria-label="分页导航">
+      {page > 1 ? (
+        <a href={buildUrl(page - 1)} class="glass-btn mine-page-btn">上一页</a>
+      ) : (
+        <span class="mine-page-btn mine-page-btn--disabled" aria-disabled="true">上一页</span>
+      )}
+      <span class="mine-page-status">第 {page} / {totalPages} 页</span>
+      {page < totalPages ? (
+        <a href={buildUrl(page + 1)} class="glass-btn mine-page-btn">下一页</a>
+      ) : (
+        <span class="mine-page-btn mine-page-btn--disabled" aria-disabled="true">下一页</span>
+      )}
+    </nav>
+  )}
+</BaseLayout>
+
+<style>
+  .mine-header,
+  .mine-empty,
+  .mine-pagination,
+  .mine-card {
+    padding: 1.4rem 1.6rem;
+  }
+
+  .mine-header {
+    display: grid;
+    gap: 0.8rem;
+  }
+
+  .mine-header-main {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+  }
+
+  .mine-title {
+    margin: 0;
+    font-size: 2rem;
+  }
+
+  .mine-subtitle,
+  .mine-count,
+  .mine-card-excerpt,
+  .mine-card-meta,
+  .mine-empty p,
+  .mine-page-status {
+    color: var(--text-muted);
+  }
+
+  .mine-grid {
+    display: grid;
+    gap: 1rem;
+    margin-top: 1rem;
+  }
+
+  .mine-card {
+    display: grid;
+    gap: 1rem;
+  }
+
+  .mine-card-top,
+  .mine-card-heading,
+  .mine-card-footer,
+  .mine-card-actions,
+  .mine-card-categories {
+    display: flex;
+    gap: 0.75rem;
+  }
+
+  .mine-card-top,
+  .mine-card-heading {
+    flex-direction: column;
+  }
+
+  .mine-card-title-link {
+    color: inherit;
+    text-decoration: none;
+    width: fit-content;
+  }
+
+  .mine-card-title-link:hover .mine-card-title {
+    color: var(--accent-color);
+  }
+
+  .mine-card-title {
+    margin: 0;
+    font-size: 1.2rem;
+    line-height: 1.4;
+    transition: color 0.15s ease;
+  }
+
+  .mine-card-badges,
+  .mine-card-categories {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.45rem;
+  }
+
+  .mine-badge,
+  .mine-category-chip {
+    display: inline-flex;
+    align-items: center;
+    border-radius: 999px;
+    padding: 0.2rem 0.7rem;
+    font-size: 0.78rem;
+    font-weight: 700;
+    border: 1px solid var(--glass-border);
+    text-decoration: none;
+  }
+
+  .mine-badge--published {
+    background: rgba(20, 170, 90, 0.14);
+    color: #1d8a50;
+  }
+
+  .mine-badge--draft {
+    background: rgba(217, 148, 12, 0.14);
+    color: #a16207;
+  }
+
+  .mine-badge--external,
+  .mine-category-chip {
+    background: var(--nglass-front, rgba(0, 225, 135, 0.12));
+    color: var(--accent-color);
+  }
+
+  .dark-theme .mine-badge--published {
+    color: #74e0a1;
+  }
+
+  .dark-theme .mine-badge--draft {
+    color: #f6c65b;
+  }
+
+  .mine-card-footer {
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    padding-top: 0.9rem;
+    border-top: 1px solid var(--glass-border);
+  }
+
+  .mine-card-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.9rem;
+    font-size: 0.9rem;
+  }
+
+  .mine-card-actions {
+    align-items: center;
+    flex-wrap: wrap;
+  }
+
+  .mine-action-btn,
+  .mine-create-btn,
+  .mine-empty-btn,
+  .mine-page-btn {
+    justify-content: center;
+  }
+
+  .mine-empty {
+    margin-top: 1rem;
+    display: grid;
+    gap: 0.85rem;
+    text-align: center;
+    justify-items: center;
+  }
+
+  .mine-empty h2 {
+    margin: 0;
+  }
+
+  .mine-pagination {
+    margin-top: 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+  }
+
+  .mine-page-btn--disabled {
+    opacity: 0.5;
+    pointer-events: none;
+  }
+
+  @media (max-width: 720px) {
+    .mine-header-main,
+    .mine-card-footer {
+      flex-direction: column;
+      align-items: stretch;
+    }
+
+    .mine-card-actions {
+      width: 100%;
+    }
+
+    .mine-action-btn,
+    .mine-create-btn {
+      width: 100%;
+    }
+  }
+</style>

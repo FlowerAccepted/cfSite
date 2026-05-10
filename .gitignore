@@ -24,3 +24,19 @@ pnpm-debug.log*
 .idea/
 
 gh-src/
+
+.jj/
+
+.kiro/
+
+# Article system specific
+# Article drafts (unpublished local drafts)
+articles/drafts/
+
+# Test coverage
+coverage/
+
+# Editor backup files
+*~
+*.swp
+*.swo

@@ -1,6 +1,11 @@
 ---
-import BaseLayout from "../layouts/BaseLayout.astro";
+import BaseLayout from "../../layouts/BaseLayout.astro";
+
+// 启用服务器端渲染，允许动态路由
+export const prerender = false;
+
 const API_BASE = import.meta.env.PUBLIC_API_BASE;
+const { uid } = Astro.params;
 ---
 
 <BaseLayout title="用户主页 - FAc's Site" mainClass="whoami-main">
@@ -28,10 +33,11 @@ const API_BASE = import.meta.env.PUBLIC_API_BASE;
         <p class="opacity-75">请检查链接是否正确。</p>
     </section>
 
-    <script define:vars={{ API_BASE }}>
+    <script define:vars={{ API_BASE, uid }} is:inline>
         window.__USER_API_BASE__ = API_BASE;
+        window.__USER_UID__ = uid;
     </script>
-    <script type="module">
+    <script type="module" is:inline>
         import("/scripts/user.js").then(({ initUserPage }) => initUserPage());
     </script>
 </BaseLayout>
