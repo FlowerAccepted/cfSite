@@ -1,0 +1,30 @@
+{
+  "name": "@cfsite/markdown-editor",
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Standalone Markdown editor web component.",
+  "exports": {
+    ".": "./src/markdown-editor.js",
+    "./astro": "./src/MarkdownIDE.astro",
+    "./MarkdownIDE.astro": "./src/MarkdownIDE.astro",
+    "./controller": "./src/markdownEditorController.js",
+    "./renderer": "./src/markdownRenderer.client.js",
+    "./template": "./src/template.js",
+    "./styles.css": "./src/styles.css"
+  },
+  "files": [
+    "src"
+  ],
+  "peerDependencies": {
+    "astro": "^6.0.0",
+    "marked": "^17.0.0"
+  },
+  "peerDependenciesMeta": {
+    "astro": {
+      "optional": true
+    }
+  },
+  "dependencies": {
+    "marked": "^17.0.1"
+  }
+}

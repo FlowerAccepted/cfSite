@@ -1,0 +1,21 @@
+---
+const {
+    prefix = "md",
+    fileTitle = "document.md",
+    editorHeightClass = "h-96",
+    editorPlaceholder = "支持 Markdown",
+    autoInit = true,
+} = Astro.props;
+---
+
+<markdown-editor
+    prefix={prefix}
+    file-title={fileTitle}
+    editor-height-class={editorHeightClass}
+    editor-placeholder={editorPlaceholder}
+    auto-init={autoInit ? "true" : "false"}
+></markdown-editor>
+
+<script type="module">
+    import "./markdown-editor.js";
+</script>

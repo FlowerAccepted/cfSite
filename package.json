@@ -14,6 +14,7 @@
   "dependencies": {
     "@astrojs/check": "^0.9.9",
     "@astrojs/node": "^10.1.0",
+    "@cfsite/markdown-editor": "file:./packages/markdown-editor",
     "@tailwindcss/vite": "^4.1.18",
     "astro": "^6.3.1",
     "better-sqlite3": "^12.9.0",
